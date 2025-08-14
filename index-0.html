@@ -1,0 +1,3130 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Advanced Celestial Navigation & Astronomy System</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    
+    @keyframes pulse {
+      0%, 100% { opacity: 0.8; }
+      50% { opacity: 1; }
+    }
+    
+    @keyframes rotate {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    
+    html, body { 
+      height: 100%; 
+      font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #000;
+      overflow: hidden;
+    }
+    
+    @keyframes twinkle {
+      0%, 100% { opacity: 0.3; }
+      50% { opacity: 1; }
+    }
+    
+    @keyframes milkyWay {
+      0% { opacity: 0.1; }
+      50% { opacity: 0.3; }
+      100% { opacity: 0.1; }
+    }
+    
+    #app { 
+      display: grid; 
+      grid-template-columns: 400px 1fr;
+      grid-template-rows: 60px 1fr 200px;
+      height: 100%;
+      background: 
+        radial-gradient(ellipse at 20% 50%, rgba(75, 0, 130, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 80% 20%, rgba(25, 25, 112, 0.15) 0%, transparent 50%),
+        radial-gradient(ellipse at 40% 80%, rgba(72, 61, 139, 0.1) 0%, transparent 50%),
+        linear-gradient(135deg, #0a0a1f 0%, #000008 50%, #0f0a1a 100%);
+    }
+    
+    #app::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(2px 2px at 20px 30px, rgba(255,255,255,0.2), transparent),
+        radial-gradient(1px 1px at 40px 70px, rgba(100,120,255,0.15), transparent),
+        radial-gradient(1px 1px at 90px 40px, rgba(138,43,226,0.12), transparent),
+        radial-gradient(2px 2px at 130px 80px, rgba(255,255,255,0.18), transparent),
+        radial-gradient(1px 1px at 160px 30px, rgba(102,126,234,0.15), transparent),
+        radial-gradient(2px 2px at 200px 120px, rgba(255,255,255,0.1), transparent);
+      background-repeat: repeat;
+      background-size: 250px 150px;
+      animation: twinkle 6s ease-in-out infinite alternate;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    #app::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(1px 1px at 50px 90px, rgba(100,120,255,0.08), transparent),
+        radial-gradient(1px 1px at 120px 50px, rgba(138,43,226,0.06), transparent),
+        radial-gradient(2px 2px at 180px 140px, rgba(255,255,255,0.1), transparent),
+        radial-gradient(1px 1px at 80px 180px, rgba(102,126,234,0.08), transparent);
+      background-repeat: repeat;
+      background-size: 300px 200px;
+      animation: twinkle 8s ease-in-out infinite alternate-reverse;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    header { 
+      grid-column: 1 / -1;
+      padding: 15px 25px;
+      background: 
+        linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%),
+        linear-gradient(90deg, rgba(20,20,40,0.8) 0%, rgba(10,10,30,0.85) 100%);
+      border-bottom: 1px solid rgba(100,120,255,0.4);
+      border-top: 1px solid rgba(255,255,255,0.1);
+      display: flex;
+      align-items: center;
+      gap: 20px;
+      backdrop-filter: blur(25px) saturate(180%);
+      box-shadow: 
+        0 4px 20px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+      position: relative;
+    }
+    
+    header::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(ellipse at 50% 50%, rgba(100,120,255,0.15) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    
+    header h1 { 
+      font-size: 24px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #667eea 0%, #f093fb 50%, #f5576c 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-shadow: 0 0 40px rgba(102,126,234,0.5);
+    }
+    
+    header .desc { 
+      color: rgba(200,210,255,0.7);
+      font-size: 13px;
+      letter-spacing: 0.5px;
+    }
+    
+    #sidebar { 
+      grid-row: 2 / 3;
+      background: 
+        linear-gradient(135deg, rgba(255,255,255,0.08) 0%, rgba(255,255,255,0.03) 100%),
+        linear-gradient(180deg, rgba(15,15,30,0.9) 0%, rgba(10,10,25,0.95) 100%);
+      border-right: 1px solid rgba(100,120,255,0.3);
+      border-left: 1px solid rgba(255,255,255,0.05);
+      overflow-y: auto;
+      backdrop-filter: blur(20px) saturate(160%);
+      scrollbar-width: thin;
+      scrollbar-color: rgba(100,120,255,0.4) transparent;
+      position: relative;
+    }
+    
+    #sidebar::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        radial-gradient(ellipse at 30% 20%, rgba(138,43,226,0.1) 0%, transparent 60%),
+        radial-gradient(ellipse at 70% 80%, rgba(65,105,225,0.08) 0%, transparent 50%);
+      pointer-events: none;
+    }
+    
+    #sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+    
+    #sidebar::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    
+    #sidebar::-webkit-scrollbar-thumb {
+      background: rgba(100,120,255,0.3);
+      border-radius: 3px;
+    }
+    
+    #sidebar section { 
+      margin: 12px;
+      padding: 16px;
+      background: 
+        linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%),
+        linear-gradient(135deg, rgba(30,30,60,0.5) 0%, rgba(20,20,50,0.7) 100%);
+      border-radius: 20px;
+      border: 1px solid rgba(100,120,255,0.3);
+      border-top: 1px solid rgba(255,255,255,0.15);
+      backdrop-filter: blur(15px) saturate(180%);
+      box-shadow: 
+        0 8px 32px rgba(0,0,0,0.4),
+        inset 0 1px 0 rgba(255,255,255,0.1);
+      position: relative;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    #sidebar section::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(ellipse at 50% 0%, rgba(100,120,255,0.1) 0%, transparent 50%);
+      border-radius: 20px;
+      pointer-events: none;
+    }
+    
+    #sidebar section:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 12px 40px rgba(0,0,0,0.5),
+        0 0 20px rgba(100,120,255,0.2),
+        inset 0 1px 0 rgba(255,255,255,0.15);
+      border-color: rgba(100,120,255,0.4);
+    }
+    
+    #sidebar h3 {
+      font-size: 12px;
+      font-weight: 700;
+      margin-bottom: 14px;
+      color: #a78bfa;
+      text-transform: uppercase;
+      letter-spacing: 1.2px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+    
+    #sidebar h3::before {
+      content: '◆';
+      color: #667eea;
+      animation: pulse 2s infinite;
+    }
+    
+    label { 
+      display: block;
+      font-size: 10px;
+      color: rgba(180,190,255,0.8);
+      margin: 10px 0 5px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+    
+    input, select, button { 
+      width: 100%;
+      padding: 10px 14px;
+      background: 
+        linear-gradient(135deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%),
+        linear-gradient(135deg, rgba(20,20,40,0.7) 0%, rgba(15,15,35,0.8) 100%);
+      border: 1px solid rgba(100,120,255,0.4);
+      border-top: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px;
+      font-size: 13px;
+      color: #e5e7eb;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative;
+    }
+    
+    input:focus, select:focus {
+      outline: none;
+      border-color: rgba(102,126,234,0.8);
+      box-shadow: 
+        0 0 0 3px rgba(102,126,234,0.3), 
+        0 0 20px rgba(102,126,234,0.4),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+      transform: translateY(-1px);
+      background: 
+        linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.08) 100%),
+        linear-gradient(135deg, rgba(20,20,40,0.8) 0%, rgba(15,15,35,0.9) 100%);
+    }
+    
+    button { 
+      cursor: pointer;
+      background: 
+        linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%),
+        linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-bottom: 1px solid rgba(0,0,0,0.2);
+      font-weight: 600;
+      color: white;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      font-size: 11px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 
+        0 4px 15px rgba(102,126,234,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+    
+    button:hover::before {
+      left: 100%;
+    }
+    
+    button:hover { 
+      transform: translateY(-2px);
+      box-shadow: 
+        0 8px 25px rgba(102,126,234,0.5),
+        0 0 20px rgba(102,126,234,0.3),
+        inset 0 1px 0 rgba(255,255,255,0.3);
+      border-color: rgba(255,255,255,0.4);
+    }
+    
+    button:active { transform: translateY(0); }
+    button:disabled { opacity: 0.4; cursor: not-allowed; }
+    
+    .row { 
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 10px;
+    }
+    
+    .kpi { 
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 8px;
+      font-size: 11px;
+    }
+    
+    .kpi > div { 
+      background: linear-gradient(135deg, rgba(40,40,80,0.4) 0%, rgba(30,30,70,0.4) 100%);
+      border: 1px solid rgba(100,120,255,0.25);
+      border-radius: 12px;
+      padding: 10px;
+      transition: all 0.3s;
+      position: relative;
+      overflow: hidden;
+    }
+    
+    .kpi > div::before {
+      content: '';
+      position: absolute;
+      top: -2px;
+      left: -2px;
+      right: -2px;
+      bottom: -2px;
+      background: linear-gradient(45deg, #667eea, #f093fb, #667eea);
+      border-radius: 12px;
+      opacity: 0;
+      transition: opacity 0.3s;
+      z-index: -1;
+    }
+    
+    .kpi > div:hover::before {
+      opacity: 0.3;
+    }
+    
+    .kpi > div:hover {
+      transform: translateY(-2px) scale(1.02);
+      border-color: #667eea;
+    }
+    
+    .kpi-label { 
+      font-size: 9px;
+      color: rgba(160,170,255,0.7);
+      margin-bottom: 4px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    
+    .kpi-value {
+      font-size: 18px;
+      font-weight: 700;
+      background: linear-gradient(135deg, #fff 0%, #a78bfa 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    
+    #canvas-container {
+      grid-row: 2 / 3;
+      grid-column: 2;
+      display: grid;
+      grid-template-columns: 1fr;
+      grid-template-rows: 1fr 1fr;
+      position: relative;
+      transition: all 0.5s ease;
+    }
+    
+    /* View Mode Classes */
+    .view-mode-globe #canvas-container {
+      grid-template-rows: 1fr;
+    }
+    
+    .view-mode-globe #canvasSky {
+      display: none;
+    }
+    
+    .view-mode-sky #canvas-container {
+      grid-template-rows: 1fr;
+    }
+    
+    .view-mode-sky #canvas3d {
+      display: none;
+    }
+    
+    .view-mode-globe #canvas3d,
+    .view-mode-sky #canvasSky {
+      border-bottom: none;
+    }
+    
+    .canvas-view {
+      position: relative;
+      background: 
+        radial-gradient(ellipse 200% 100% at center bottom, rgba(75, 0, 130, 0.08) 0%, transparent 60%),
+        radial-gradient(ellipse 150% 80% at 80% 20%, rgba(25, 25, 112, 0.05) 0%, transparent 50%),
+        radial-gradient(ellipse 120% 60% at 20% 80%, rgba(138, 43, 226, 0.03) 0%, transparent 40%),
+        linear-gradient(180deg, #0a0a1f 0%, #000005 50%, #0f0a1a 100%);
+      border: 1px solid rgba(100,120,255,0.1);
+      overflow: hidden;
+    }
+    
+    .canvas-view::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: 
+        linear-gradient(45deg, transparent 30%, rgba(255, 255, 255, 0.02) 45%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0.02) 55%, transparent 70%),
+        radial-gradient(circle at 30% 40%, rgba(255, 255, 255, 0.03) 0%, transparent 25%),
+        radial-gradient(circle at 70% 60%, rgba(255, 255, 255, 0.02) 0%, transparent 25%);
+      animation: milkyWay 8s ease-in-out infinite alternate;
+      pointer-events: none;
+      z-index: 1;
+    }
+    
+    #canvas3d {
+      border-bottom: 1px solid rgba(100,120,255,0.2);
+    }
+    
+    #controls {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: 
+        linear-gradient(135deg, rgba(255,255,255,0.15) 0%, rgba(255,255,255,0.05) 100%),
+        linear-gradient(135deg, rgba(20,20,40,0.85) 0%, rgba(15,15,35,0.9) 100%);
+      backdrop-filter: blur(25px) saturate(180%);
+      padding: 16px;
+      border-radius: 18px;
+      border: 1px solid rgba(100,120,255,0.4);
+      border-top: 1px solid rgba(255,255,255,0.2);
+      color: #e5e7eb;
+      font-size: 11px;
+      box-shadow: 
+        0 8px 32px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.15);
+      z-index: 10;
+      transition: all 0.3s ease;
+    }
+    
+    #controls:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 12px 40px rgba(0,0,0,0.6),
+        0 0 20px rgba(100,120,255,0.2),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    
+    #controls label {
+      display: inline-flex;
+      align-items: center;
+      margin-right: 14px;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    
+    #controls label:hover {
+      color: #a78bfa;
+    }
+    
+    #controls input[type="checkbox"] {
+      width: auto;
+      margin-right: 6px;
+      accent-color: #667eea;
+    }
+    
+    #legend {
+      position: absolute;
+      right: 12px;
+      bottom: 12px;
+      background: 
+        linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0.06) 100%),
+        linear-gradient(135deg, rgba(20,20,40,0.9) 0%, rgba(15,15,35,0.95) 100%);
+      backdrop-filter: blur(25px) saturate(180%);
+      color: rgba(200,210,255,0.95);
+      padding: 16px 20px;
+      border-radius: 18px;
+      border: 1px solid rgba(100,120,255,0.4);
+      border-top: 1px solid rgba(255,255,255,0.2);
+      font-size: 11px;
+      max-width: 340px;
+      line-height: 1.7;
+      box-shadow: 
+        0 8px 32px rgba(0,0,0,0.5),
+        inset 0 1px 0 rgba(255,255,255,0.15);
+      transition: all 0.3s ease;
+    }
+    
+    #legend:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 12px 40px rgba(0,0,0,0.6),
+        0 0 20px rgba(100,120,255,0.15),
+        inset 0 1px 0 rgba(255,255,255,0.2);
+    }
+    
+    #legend strong {
+      color: #a78bfa;
+      display: block;
+      margin-bottom: 8px;
+      font-size: 12px;
+    }
+    
+    #graphs {
+      grid-column: 1 / -1;
+      grid-row: 3;
+      background: linear-gradient(180deg, rgba(15,15,30,0.95) 0%, rgba(10,10,25,0.95) 100%);
+      border-top: 1px solid rgba(100,120,255,0.2);
+      padding: 12px;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+      overflow-x: auto;
+    }
+    
+    .graph-container {
+      background: linear-gradient(135deg, rgba(30,30,60,0.6) 0%, rgba(20,20,50,0.6) 100%);
+      border-radius: 12px;
+      padding: 12px;
+      border: 1px solid rgba(100,120,255,0.2);
+      min-width: 300px;
+    }
+    
+    .graph-title {
+      font-size: 11px;
+      color: #a78bfa;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+      font-weight: 600;
+    }
+    
+    canvas.graph {
+      width: 100%;
+      height: 120px;
+      border-radius: 8px;
+      background: rgba(10,10,20,0.5);
+    }
+    
+    .equation {
+      font-family: 'Courier New', monospace;
+      font-size: 10px;
+      color: rgba(100,255,150,0.8);
+      background: rgba(0,20,10,0.4);
+      padding: 6px 10px;
+      border-radius: 6px;
+      margin-top: 8px;
+      border: 1px solid rgba(100,255,150,0.2);
+      overflow-x: auto;
+      white-space: nowrap;
+    }
+    
+    .planet-info {
+      background: linear-gradient(135deg, rgba(60,30,90,0.3) 0%, rgba(40,20,70,0.3) 100%);
+      border: 1px solid rgba(150,100,255,0.3);
+      border-radius: 10px;
+      padding: 8px;
+      margin-top: 8px;
+      font-size: 10px;
+    }
+    
+    .constellation-label {
+      position: absolute;
+      color: rgba(150,160,255,0.6);
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      pointer-events: none;
+      text-shadow: 0 0 10px rgba(0,0,0,0.8);
+    }
+    
+    .loading {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      color: #a78bfa;
+      font-size: 24px;
+      z-index: 1000;
+      animation: pulse 1s infinite;
+    }
+  </style>
+</head>
+<body>
+<div class="loading" id="loading">Initializing Universe...</div>
+<div id="app" style="display: none;">
+  <header>
+    <h1>🌌 Advanced Celestial Navigation System</h1>
+    <div class="desc">Real-time astronomy, navigation, planets, constellations & scientific analysis</div>
+  </header>
+  
+  <aside id="sidebar">
+    <section>
+      <h3>Observer Location</h3>
+      <div class="row">
+        <div>
+          <label>Latitude (°)</label>
+          <input id="lat" type="number" step="0.0001" value="53.5361" min="-90" max="90" />
+        </div>
+        <div>
+          <label>Longitude (°)</label>
+          <input id="lon" type="number" step="0.0001" value="10.0227" min="-180" max="180" />
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Altitude (m)</label>
+          <input id="alt" type="number" step="1" value="10" />
+        </div>
+        <div>
+          <label>Time (UTC)</label>
+          <input id="time" type="datetime-local" step="1" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:12px;">
+        <button id="btnNow">🕐 Current Time</button>
+        <button id="btnGeo">📍 GPS Location</button>
+      </div>
+      <div class="row" style="margin-top:8px;">
+        <button id="btnAnimate">▶ Animate</button>
+        <button id="btnPause" disabled>⏸ Pause</button>
+      </div>
+    </section>
+
+    <section>
+      <h3>Solar System</h3>
+      <div class="kpi">
+        <div>
+          <div class="kpi-label">☀️ Sun Az/Alt</div>
+          <div class="kpi-value" id="sunPos">—</div>
+        </div>
+        <div>
+          <div class="kpi-label">🌙 Moon Az/Alt</div>
+          <div class="kpi-value" id="moonPos">—</div>
+        </div>
+      </div>
+      <div id="planetList" class="planet-info"></div>
+    </section>
+
+    <section>
+      <h3>Time Systems</h3>
+      <div class="kpi">
+        <div>
+          <div class="kpi-label">LST</div>
+          <div class="kpi-value" id="lst">—</div>
+        </div>
+        <div>
+          <div class="kpi-label">GMST</div>
+          <div class="kpi-value" id="gmst">—</div>
+        </div>
+        <div>
+          <div class="kpi-label">Julian Day</div>
+          <div class="kpi-value" id="jd">—</div>
+        </div>
+        <div>
+          <div class="kpi-label">ΔT (TT-UT)</div>
+          <div class="kpi-value" id="deltaT">69.2s</div>
+        </div>
+      </div>
+    </section>
+
+    <section>
+      <h3>Navigation Stars</h3>
+      <div id="navStars" style="font-size: 10px; color: rgba(180,190,255,0.8);"></div>
+    </section>
+  </aside>
+  
+  <div id="canvas-container">
+    <div id="canvas3d" class="canvas-view">
+      <div id="controls">
+        <div id="viewModeSelector" style="margin-bottom: 12px; padding-bottom: 10px; border-bottom: 1px solid rgba(100,120,255,0.3);">
+          <label style="display: block; margin-bottom: 6px; color: #a78bfa; font-weight: 600;">View Mode:</label>
+          <select id="viewMode" style="width: 100%; margin-bottom: 8px;">
+            <option value="split">Split Screen</option>
+            <option value="globe">3D Celestial Globe</option>
+            <option value="sky">Observer's Sky View</option>
+          </select>
+        </div>
+        <label><input type="checkbox" id="showStars" checked> Stars</label>
+        <label><input type="checkbox" id="showConst" checked> Constellations</label>
+        <label><input type="checkbox" id="showPlanets" checked> Planets</label>
+        <label><input type="checkbox" id="showGrid" checked> Grid</label>
+        <label><input type="checkbox" id="showLabels" checked> Labels</label>
+        <label><input type="checkbox" id="showOrbits" checked> Orbits</label>
+      </div>
+    </div>
+    <div id="canvasSky" class="canvas-view"></div>
+  </div>
+  
+  <div id="graphs">
+    <div class="graph-container">
+      <div class="graph-title">Solar Altitude (24h)</div>
+      <canvas id="graphSolar" class="graph"></canvas>
+      <div class="equation">h = arcsin(sin φ sin δ + cos φ cos δ cos H)</div>
+    </div>
+    <div class="graph-container">
+      <div class="graph-title">Analemma</div>
+      <canvas id="graphAnalemma" class="graph"></canvas>
+      <div class="equation">EoT = 4(L₀ - 0.0057183 - α + ΔΨ cos ε)</div>
+    </div>
+    <div class="graph-container">
+      <div class="graph-title">Planet Positions</div>
+      <canvas id="graphPlanets" class="graph"></canvas>
+      <div class="equation">M = M₀ + n(t - t₀); E - e sin E = M</div>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// Ultra-Enhanced Celestial Navigation System with Planets & Constellations
+(function() {
+  'use strict';
+  
+  // ============ Constants ============
+  const DEG2RAD = Math.PI / 180;
+  const RAD2DEG = 180 / Math.PI;
+  const TAU = Math.PI * 2;
+  const AU = 149597870.7; // km
+  const J2000 = 2451545.0;
+  
+  // ============ Planetary Orbital Elements (J2000) ============
+  const PLANETS = {
+    Mercury: { 
+      a: 0.387098, e: 0.205630, i: 7.005, Ω: 48.331, ϖ: 77.456, L: 252.251,
+      color: 0x888888, size: 0.02, symbol: '☿'
+    },
+    Venus: { 
+      a: 0.723332, e: 0.006772, i: 3.395, Ω: 76.680, ϖ: 131.563, L: 181.979,
+      color: 0xffcc66, size: 0.04, symbol: '♀'
+    },
+    Mars: { 
+      a: 1.523679, e: 0.093400, i: 1.850, Ω: 49.558, ϖ: 336.060, L: 355.433,
+      color: 0xff6644, size: 0.03, symbol: '♂'
+    },
+    Jupiter: { 
+      a: 5.202887, e: 0.048498, i: 1.303, Ω: 100.464, ϖ: 14.331, L: 34.351,
+      color: 0xccaa88, size: 0.08, symbol: '♃'
+    },
+    Saturn: { 
+      a: 9.536676, e: 0.055546, i: 2.489, Ω: 113.666, ϖ: 93.057, L: 50.077,
+      color: 0xffffcc, size: 0.07, symbol: '♄'
+    },
+    Uranus: { 
+      a: 19.189165, e: 0.047318, i: 0.773, Ω: 74.006, ϖ: 173.005, L: 314.055,
+      color: 0x66ccff, size: 0.05, symbol: '⛢'
+    },
+    Neptune: { 
+      a: 30.069923, e: 0.008859, i: 1.770, Ω: 131.785, ϖ: 48.124, L: 304.349,
+      color: 0x4466ff, size: 0.05, symbol: '♆'
+    }
+  };
+  
+  // ============ Extended Constellation Data ============
+  const CONSTELLATIONS = {
+    // Zodiac Constellations
+    'Aries': {
+      stars: [[31.79,23.46],[35.16,19.29],[28.66,15.20]],
+      lines: [[0,1],[1,2]],
+      label: { ra: 32, dec: 20 }
+    },
+    'Taurus': {
+      stars: [[68.98,16.51],[84.41,28.61],[81.57,21.14],[79.27,21.47],[80.90,12.49]],
+      lines: [[0,1],[0,2],[0,3],[0,4]],
+      label: { ra: 72, dec: 18 }
+    },
+    'Gemini': {
+      stars: [[116.33,28.03],[113.65,31.88],[108.12,20.57],[111.76,24.40]],
+      lines: [[0,1],[0,2],[1,3]],
+      label: { ra: 115, dec: 26 }
+    },
+    'Cancer': {
+      stars: [[130.11,11.86],[131.17,21.47],[127.99,18.15]],
+      lines: [[0,1],[1,2],[2,0]],
+      label: { ra: 130, dec: 17 }
+    },
+    'Leo': {
+      stars: [[152.09,11.97],[146.46,14.57],[139.32,19.84],[148.19,26.01],[154.99,15.43]],
+      lines: [[0,1],[1,2],[2,3],[3,4],[4,0]],
+      label: { ra: 148, dec: 18 }
+    },
+    'Virgo': {
+      stars: [[201.30,-11.16],[213.92,19.18],[190.38,-3.40],[195.54,10.96]],
+      lines: [[0,2],[2,3],[3,1]],
+      label: { ra: 200, dec: 2 }
+    },
+    'Libra': {
+      stars: [[222.72,-16.04],[229.25,-9.38],[235.28,-25.28]],
+      lines: [[0,1],[1,2]],
+      label: { ra: 228, dec: -16 }
+    },
+    'Scorpius': {
+      stars: [[247.35,-26.43],[241.36,-19.81],[242.00,-22.62],[243.59,-25.59],[245.46,-29.21],[248.97,-37.10],[252.54,-38.05]],
+      lines: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6]],
+      label: { ra: 245, dec: -28 }
+    },
+    'Sagittarius': {
+      stars: [[276.04,-30.42],[271.45,-21.06],[283.82,-25.42],[290.66,-26.30],[306.41,-40.62]],
+      lines: [[0,1],[1,2],[2,3],[1,4]],
+      label: { ra: 280, dec: -28 }
+    },
+    'Capricornus': {
+      stars: [[325.02,-12.51],[320.76,-16.66],[322.17,-24.37]],
+      lines: [[0,1],[1,2]],
+      label: { ra: 322, dec: -18 }
+    },
+    'Aquarius': {
+      stars: [[331.45,-0.32],[322.89,-15.82],[338.96,-7.78],[346.19,-9.50]],
+      lines: [[0,1],[0,2],[0,3]],
+      label: { ra: 335, dec: -8 }
+    },
+    'Pisces': {
+      stars: [[344.41,-29.62],[2.07,2.76],[23.06,5.49]],
+      lines: [[0,1],[1,2]],
+      label: { ra: 15, dec: -8 }
+    },
+    
+    // Major Northern Constellations
+    'Ursa Major': {
+      stars: [[165.93,61.75],[165.46,56.38],[154.27,53.69],[193.51,53.69],[166.97,49.31],[178.46,47.78],[206.89,49.31]],
+      lines: [[0,1],[1,2],[2,3],[3,4],[4,5],[5,6],[6,1]],
+      label: { ra: 175, dec: 55 }
+    },
+    'Ursa Minor': {
+      stars: [[37.95,89.26],[213.32,74.16],[230.18,77.79],[348.19,75.76]],
+      lines: [[0,1],[1,2],[2,3]],
+      label: { ra: 200, dec: 80 }
+    },
+    'Cassiopeia': {
+      stars: [[14.18,60.72],[17.43,59.15],[28.60,60.63],[40.83,56.54],[49.48,57.82]],
+      lines: [[0,1],[1,2],[2,3],[3,4]],
+      label: { ra: 30, dec: 58 }
+    },
+    'Cepheus': {
+      stars: [[337.29,58.42],[309.39,77.63],[344.37,64.63],[20.29,62.20]],
+      lines: [[0,1],[1,2],[2,3],[3,0]],
+      label: { ra: 340, dec: 65 }
+    },
+    'Draco': {
+      stars: [[159.00,58.97],[173.68,65.71],[212.10,69.33],[269.15,51.49],[279.23,65.71]],
+      lines: [[0,1],[1,2],[2,3],[3,4]],
+      label: { ra: 220, dec: 65 }
+    },
+    'Cygnus': {
+      stars: [[310.36,45.28],[305.56,40.26],[296.24,33.97],[311.55,27.96],[292.68,51.73]],
+      lines: [[0,1],[1,2],[2,3],[1,4]],
+      label: { ra: 305, dec: 42 }
+    },
+    'Lyra': {
+      stars: [[279.23,38.78],[284.74,32.69],[281.41,39.15]],
+      lines: [[0,1],[0,2]],
+      label: { ra: 282, dec: 37 }
+    },
+    'Aquila': {
+      stars: [[297.70,8.87],[292.68,13.86],[290.74,6.41]],
+      lines: [[0,1],[0,2]],
+      label: { ra: 295, dec: 10 }
+    },
+    'Perseus': {
+      stars: [[51.08,49.86],[47.04,40.96],[58.53,35.79]],
+      lines: [[0,1],[1,2]],
+      label: { ra: 52, dec: 42 }
+    },
+    'Andromeda': {
+      stars: [[2.07,29.09],[14.21,38.50],[23.06,46.46]],
+      lines: [[0,1],[1,2]],
+      label: { ra: 12, dec: 38 }
+    },
+    'Pegasus': {
+      stars: [[346.19,15.21],[2.07,29.09],[14.21,25.35],[331.45,9.87]],
+      lines: [[0,1],[1,2],[2,3],[3,0]],
+      label: { ra: 345, dec: 20 }
+    },
+    'Auriga': {
+      stars: [[79.17,45.99],[89.93,37.21],[84.41,28.61]],
+      lines: [[0,1],[1,2],[2,0]],
+      label: { ra: 84, dec: 37 }
+    },
+    'Boötes': {
+      stars: [[213.92,19.18],[218.02,30.37],[225.49,37.38]],
+      lines: [[0,1],[1,2]],
+      label: { ra: 218, dec: 30 }
+    },
+    'Hercules': {
+      stars: [[258.66,26.11],[259.28,31.60],[247.55,36.46]],
+      lines: [[0,1],[1,2]],
+      label: { ra: 255, dec: 32 }
+    },
+    'Ophiuchus': {
+      stars: [[263.73,12.56],[266.60,-3.69],[255.14,-4.69]],
+      lines: [[0,1],[1,2]],
+      label: { ra: 262, dec: 2 }
+    },
+    
+    // Major Southern Constellations
+    'Orion': {
+      stars: [[88.79,7.41],[78.63,-8.20],[83.00,-5.09],[84.05,-1.20],[86.94,-9.67],[81.28,6.35],[85.19,-1.94]],
+      lines: [[0,3],[3,1],[3,2],[3,5],[2,4],[1,6],[4,6]],
+      label: { ra: 84, dec: -2 }
+    },
+    'Canis Major': {
+      stars: [[101.29,-16.72],[107.10,-26.39],[104.66,-28.97]],
+      lines: [[0,1],[1,2]],
+      label: { ra: 104, dec: -22 }
+    },
+    'Canis Minor': {
+      stars: [[114.83,5.22],[116.33,8.90]],
+      lines: [[0,1]],
+      label: { ra: 115, dec: 7 }
+    },
+    'Centaurus': {
+      stars: [[219.90,-60.84],[210.96,-36.37],[222.67,-47.29]],
+      lines: [[0,1],[1,2]],
+      label: { ra: 218, dec: -48 }
+    },
+    'Crux': {
+      stars: [[186.65,-63.10],[191.93,-59.69],[187.79,-57.11],[183.79,-56.77]],
+      lines: [[0,2],[1,3],[0,1]],
+      label: { ra: 187, dec: -60 }
+    },
+    'Carina': {
+      stars: [[95.99,-52.70],[138.30,-69.72],[159.89,-59.28]],
+      lines: [[0,1],[1,2]],
+      label: { ra: 135, dec: -60 }
+    },
+    'Vela': {
+      stars: [[140.53,-55.01],[123.09,-43.43]],
+      lines: [[0,1]],
+      label: { ra: 132, dec: -49 }
+    },
+    'Puppis': {
+      stars: [[120.90,-40.00],[118.16,-24.86]],
+      lines: [[0,1]],
+      label: { ra: 119, dec: -32 }
+    },
+    'Hydra': {
+      stars: [[141.90,-8.66],[159.69,-13.06],[174.95,-23.17]],
+      lines: [[0,1],[1,2]],
+      label: { ra: 158, dec: -15 }
+    },
+    'Eridanus': {
+      stars: [[24.43,-57.24],[58.78,-5.09],[84.41,-9.76]],
+      lines: [[0,1],[1,2]],
+      label: { ra: 55, dec: -24 }
+    }
+  };
+  
+  // ============ Famous Stars Database ============
+  const FAMOUS_STARS = [
+    // Navigation stars (brightest)
+    { name: 'Sirius', ra: 101.29, dec: -16.72, mag: -1.46, color: 0xaaccff, category: 'navigation', constellation: 'Canis Major' },
+    { name: 'Canopus', ra: 95.99, dec: -52.7, mag: -0.74, color: 0xfff5ee, category: 'navigation', constellation: 'Carina' },
+    { name: 'Arcturus', ra: 213.92, dec: 19.18, mag: -0.05, color: 0xffcc66, category: 'navigation', constellation: 'Boötes' },
+    { name: 'Vega', ra: 279.23, dec: 38.78, mag: 0.03, color: 0xaaccff, category: 'navigation', constellation: 'Lyra' },
+    { name: 'Capella', ra: 79.17, dec: 45.99, mag: 0.08, color: 0xffff99, category: 'navigation', constellation: 'Auriga' },
+    { name: 'Rigel', ra: 78.63, dec: -8.2, mag: 0.13, color: 0xaaccff, category: 'navigation', constellation: 'Orion' },
+    { name: 'Procyon', ra: 114.83, dec: 5.22, mag: 0.37, color: 0xfffff0, category: 'navigation', constellation: 'Canis Minor' },
+    { name: 'Betelgeuse', ra: 88.79, dec: 7.41, mag: 0.42, color: 0xff6633, category: 'navigation', constellation: 'Orion' },
+    { name: 'Altair', ra: 297.7, dec: 8.87, mag: 0.77, color: 0xfffff0, category: 'navigation', constellation: 'Aquila' },
+    { name: 'Aldebaran', ra: 68.98, dec: 16.51, mag: 0.85, color: 0xffaa33, category: 'navigation', constellation: 'Taurus' },
+    { name: 'Spica', ra: 201.3, dec: -11.16, mag: 0.97, color: 0xaaccff, category: 'navigation', constellation: 'Virgo' },
+    { name: 'Antares', ra: 247.35, dec: -26.43, mag: 1.04, color: 0xff3333, category: 'navigation', constellation: 'Scorpius' },
+    { name: 'Pollux', ra: 116.33, dec: 28.03, mag: 1.14, color: 0xffcc66, category: 'navigation', constellation: 'Gemini' },
+    { name: 'Fomalhaut', ra: 344.41, dec: -29.62, mag: 1.16, color: 0xaaccff, category: 'navigation', constellation: 'Piscis Austrinus' },
+    { name: 'Deneb', ra: 310.36, dec: 45.28, mag: 1.25, color: 0xaaccff, category: 'navigation', constellation: 'Cygnus' },
+    { name: 'Regulus', ra: 152.09, dec: 11.97, mag: 1.35, color: 0xaaccff, category: 'navigation', constellation: 'Leo' },
+    { name: 'Polaris', ra: 37.95, dec: 89.26, mag: 1.97, color: 0xffff99, category: 'navigation', constellation: 'Ursa Minor' },
+    
+    // Additional famous stars
+    { name: 'Castor', ra: 113.65, dec: 31.88, mag: 1.57, color: 0xffffff, category: 'famous', constellation: 'Gemini' },
+    { name: 'Bellatrix', ra: 81.28, dec: 6.35, mag: 1.64, color: 0xaaccff, constellation: 'Orion' },
+    { name: 'Elnath', ra: 84.41, dec: 28.61, mag: 1.68, color: 0xaaccff, constellation: 'Taurus' },
+    { name: 'Miaplacidus', ra: 138.30, dec: -69.72, mag: 1.68, color: 0xffffcc, constellation: 'Carina' },
+    { name: 'Alnilam', ra: 84.05, dec: -1.20, mag: 1.69, color: 0xaaccff, constellation: 'Orion' },
+    { name: 'Dubhe', ra: 165.93, dec: 61.75, mag: 1.79, color: 0xffcc66, category: 'famous', constellation: 'Ursa Major' },
+    { name: 'Mirfak', ra: 51.08, dec: 49.86, mag: 1.80, color: 0xffff99, constellation: 'Perseus' },
+    { name: 'Wezen', ra: 107.10, dec: -26.39, mag: 1.84, color: 0xffff99, constellation: 'Canis Major' },
+    { name: 'Sargas', ra: 264.33, dec: -42.50, mag: 1.87, color: 0xffaa33, constellation: 'Scorpius' },
+    { name: 'Alnitak', ra: 85.19, dec: -1.94, mag: 1.88, color: 0xaaccff, constellation: 'Orion' },
+    { name: 'Mintaka', ra: 83.00, dec: -0.30, mag: 2.23, color: 0xaaccff, constellation: 'Orion' },
+    { name: 'Merak', ra: 165.46, dec: 56.38, mag: 2.37, color: 0xffffff, category: 'famous', constellation: 'Ursa Major' },
+    
+    // Variable and special stars
+    { name: 'Mira', ra: 34.84, dec: -2.98, mag: 3.5, color: 0xff6666, category: 'variable', constellation: 'Cetus' },
+    { name: 'Algol', ra: 47.04, dec: 40.96, mag: 2.87, color: 0xaaccff, category: 'variable', constellation: 'Perseus' },
+    { name: 'Delta Cephei', ra: 337.29, dec: 58.42, mag: 4.07, color: 0xffff99, category: 'variable', constellation: 'Cepheus' },
+    
+    // Zodiac constellation stars
+    { name: 'Hamal', ra: 31.79, dec: 23.46, mag: 2.00, color: 0xffcc66, constellation: 'Aries' },
+    { name: 'Alphard', ra: 141.9, dec: -8.66, mag: 1.98, color: 0xffaa33, constellation: 'Hydra' },
+    { name: 'Markab', ra: 346.19, dec: 15.21, mag: 2.49, color: 0xaaccff, constellation: 'Pegasus' },
+    { name: 'Diphda', ra: 10.90, dec: -17.99, mag: 2.04, color: 0xffcc66, constellation: 'Cetus' },
+    { name: 'Alpheratz', ra: 2.07, dec: 29.09, mag: 2.06, color: 0xaaccff, constellation: 'Andromeda' },
+    
+    // Southern sky famous stars
+    { name: 'Achernar', ra: 24.43, dec: -57.24, mag: 0.46, color: 0xaaccff, constellation: 'Eridanus' },
+    { name: 'Acrux', ra: 186.65, dec: -63.10, mag: 0.77, color: 0xaaccff, category: 'famous', constellation: 'Crux' },
+    { name: 'Gacrux', ra: 187.79, dec: -57.11, mag: 1.63, color: 0xff6633, constellation: 'Crux' },
+    { name: 'Peacock', ra: 306.41, dec: -56.74, mag: 1.94, color: 0xaaccff, constellation: 'Pavo' },
+    { name: 'Mimosa', ra: 191.93, dec: -59.69, mag: 1.25, color: 0xaaccff, constellation: 'Crux' }
+  ];
+  
+  // ============ Math Utilities ============
+  const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+  const norm360 = d => ((d % 360) + 360) % 360;
+  const norm180 = d => ((d + 180) % 360 + 360) % 360 - 180;
+  
+  // ============ Astronomical Calculations ============
+  function toJulianDay(date) {
+    const y = date.getUTCFullYear();
+    const m = date.getUTCMonth() + 1;
+    const d = date.getUTCDate() + (date.getUTCHours() + date.getUTCMinutes()/60 + date.getUTCSeconds()/3600) / 24;
+    
+    const a = Math.floor((14 - m) / 12);
+    const y1 = y + 4800 - a;
+    const m1 = m + 12 * a - 3;
+    
+    return d + Math.floor((153 * m1 + 2) / 5) + 365 * y1 + Math.floor(y1 / 4) - Math.floor(y1 / 100) + Math.floor(y1 / 400) - 32045;
+  }
+  
+  function greenwichMeanSiderealTime(jd) {
+    const T = (jd - J2000) / 36525.0;
+    let gmst = 280.46061837 + 360.98564736629 * (jd - J2000) + 0.000387933 * T * T - T * T * T / 38710000;
+    return norm360(gmst);
+  }
+  
+  function localSiderealTime(jd, longitude) {
+    return norm360(greenwichMeanSiderealTime(jd) + longitude);
+  }
+  
+  function obliquityOfEcliptic(jd) {
+    const T = (jd - J2000) / 36525.0;
+    return 23.439291 - 0.0130042 * T - 0.00000016 * T * T + 0.000000504 * T * T * T;
+  }
+  
+  // Kepler's equation solver
+  function solveKeplerEquation(M, e, tolerance = 1e-6) {
+    let E = M;
+    for (let i = 0; i < 100; i++) {
+      const dE = (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+      E -= dE;
+      if (Math.abs(dE) < tolerance) break;
+    }
+    return E;
+  }
+  
+  // Calculate planet position
+  function planetPosition(planet, jd) {
+    const T = (jd - J2000) / 36525.0;
+    const elements = PLANETS[planet];
+    
+    // Mean anomaly
+    const n = 360 / (elements.a ** 1.5 * 365.25); // mean motion
+    const M = norm360(elements.L + n * (jd - J2000)) * DEG2RAD;
+    
+    // Solve Kepler's equation
+    const E = solveKeplerEquation(M, elements.e);
+    
+    // True anomaly
+    const v = 2 * Math.atan2(
+      Math.sqrt(1 + elements.e) * Math.sin(E/2),
+      Math.sqrt(1 - elements.e) * Math.cos(E/2)
+    );
+    
+    // Heliocentric distance
+    const r = elements.a * (1 - elements.e * Math.cos(E));
+    
+    // Heliocentric coordinates
+    const Ω = elements.Ω * DEG2RAD;
+    const ω = (elements.ϖ - elements.Ω) * DEG2RAD;
+    const i = elements.i * DEG2RAD;
+    
+    const xh = r * (Math.cos(Ω) * Math.cos(v + ω) - Math.sin(Ω) * Math.sin(v + ω) * Math.cos(i));
+    const yh = r * (Math.sin(Ω) * Math.cos(v + ω) + Math.cos(Ω) * Math.sin(v + ω) * Math.cos(i));
+    const zh = r * Math.sin(v + ω) * Math.sin(i);
+    
+    // Convert to ecliptic coordinates
+    const eps = obliquityOfEcliptic(jd) * DEG2RAD;
+    
+    // For simplicity, assuming Earth at origin (needs Earth position for accuracy)
+    const lambda = Math.atan2(yh, xh);
+    const beta = Math.atan2(zh, Math.sqrt(xh*xh + yh*yh));
+    
+    // Convert to RA/Dec
+    const ra = Math.atan2(Math.sin(lambda) * Math.cos(eps) - Math.tan(beta) * Math.sin(eps), Math.cos(lambda));
+    const dec = Math.asin(Math.sin(beta) * Math.cos(eps) + Math.cos(beta) * Math.sin(eps) * Math.sin(lambda));
+    
+    return { 
+      ra: norm360(ra * RAD2DEG), 
+      dec: dec * RAD2DEG,
+      distance: r,
+      x: xh,
+      y: yh,
+      z: zh
+    };
+  }
+  
+  // Solar position
+  function solarPosition(jd) {
+    const T = (jd - J2000) / 36525.0;
+    const M = norm360(357.52911 + 35999.05029 * T - 0.0001537 * T * T);
+    const L0 = norm360(280.46646 + 36000.76983 * T + 0.0003032 * T * T);
+    const C = (1.914602 - 0.004817 * T - 0.000014 * T * T) * Math.sin(M * DEG2RAD)
+            + (0.019993 - 0.000101 * T) * Math.sin(2 * M * DEG2RAD)
+            + 0.000289 * Math.sin(3 * M * DEG2RAD);
+    const lambda = L0 + C;
+    const epsilon = obliquityOfEcliptic(jd);
+    const lam = lambda * DEG2RAD;
+    const eps = epsilon * DEG2RAD;
+    const alpha = Math.atan2(Math.cos(eps) * Math.sin(lam), Math.cos(lam)) * RAD2DEG;
+    const delta = Math.asin(Math.sin(eps) * Math.sin(lam)) * RAD2DEG;
+    return { ra: norm360(alpha), dec: delta };
+  }
+  
+  // Lunar position
+  function lunarPosition(jd) {
+    const T = (jd - J2000) / 36525.0;
+    const L = norm360(218.316 + 481267.881 * T);
+    const M = norm360(134.963 + 477198.85 * T);
+    const F = norm360(93.272 + 483202.018 * T);
+    const lambda = L + 6.289 * Math.sin(M * DEG2RAD);
+    const beta = 5.128 * Math.sin(F * DEG2RAD);
+    const eps = obliquityOfEcliptic(jd) * DEG2RAD;
+    const lam = lambda * DEG2RAD;
+    const bet = beta * DEG2RAD;
+    const ra = Math.atan2(Math.sin(lam) * Math.cos(eps) - Math.tan(bet) * Math.sin(eps), Math.cos(lam));
+    const dec = Math.asin(Math.sin(bet) * Math.cos(eps) + Math.cos(bet) * Math.sin(eps) * Math.sin(lam));
+    return { ra: norm360(ra * RAD2DEG), dec: dec * RAD2DEG };
+  }
+  
+  // Convert RA/Dec to Alt/Az
+  function raDecToAltAz(ra, dec, lat, lon, lst) {
+    const ha = (lst - ra) * DEG2RAD;
+    const latRad = lat * DEG2RAD;
+    const decRad = dec * DEG2RAD;
+    const alt = Math.asin(Math.sin(latRad) * Math.sin(decRad) + Math.cos(latRad) * Math.cos(decRad) * Math.cos(ha));
+    const az = Math.atan2(Math.sin(ha), Math.cos(ha) * Math.sin(latRad) - Math.tan(decRad) * Math.cos(latRad));
+    return {
+      altitude: alt * RAD2DEG,
+      azimuth: norm360(az * RAD2DEG + 180)
+    };
+  }
+  
+  // ============ Three.js Scene Setup ============
+  const canvas3d = document.getElementById('canvas3d');
+  const canvasSky = document.getElementById('canvasSky');
+  
+  // 3D Globe Scene
+  const scene3d = new THREE.Scene();
+  const camera3d = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
+  camera3d.position.set(0, 3, 6);
+  
+  const renderer3d = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  renderer3d.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  renderer3d.shadowMap.enabled = true;
+  renderer3d.shadowMap.type = THREE.PCFSoftShadowMap;
+  canvas3d.appendChild(renderer3d.domElement);
+  
+  // Sky View Scene (Observer's perspective)
+  const sceneSky = new THREE.Scene();
+  const cameraSky = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
+  cameraSky.position.set(0, 0, 0);
+  
+  const rendererSky = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  rendererSky.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+  canvasSky.appendChild(rendererSky.domElement);
+  
+  // Custom orbit controls
+  class OrbitControls {
+    constructor(camera, domElement) {
+      this.camera = camera;
+      this.domElement = domElement;
+      this.spherical = new THREE.Spherical(8, Math.PI/3, 0);
+      this.target = new THREE.Vector3(0, 0, 0);
+      this.isDragging = false;
+      this.previousMouse = { x: 0, y: 0 };
+      
+      this.domElement.addEventListener('mousedown', e => this.onMouseDown(e));
+      this.domElement.addEventListener('mousemove', e => this.onMouseMove(e));
+      this.domElement.addEventListener('mouseup', () => this.onMouseUp());
+      this.domElement.addEventListener('wheel', e => this.onWheel(e));
+    }
+    
+    onMouseDown(e) {
+      this.isDragging = true;
+      this.previousMouse = { x: e.clientX, y: e.clientY };
+    }
+    
+    onMouseMove(e) {
+      if (!this.isDragging) return;
+      const deltaX = e.clientX - this.previousMouse.x;
+      const deltaY = e.clientY - this.previousMouse.y;
+      this.spherical.theta -= deltaX * 0.01;
+      this.spherical.phi = clamp(this.spherical.phi + deltaY * 0.01, 0.1, Math.PI - 0.1);
+      this.previousMouse = { x: e.clientX, y: e.clientY };
+      this.update();
+    }
+    
+    onMouseUp() {
+      this.isDragging = false;
+    }
+    
+    onWheel(e) {
+      e.preventDefault();
+      this.spherical.radius = clamp(this.spherical.radius + e.deltaY * 0.01, 2, 50);
+      this.update();
+    }
+    
+    update() {
+      this.camera.position.setFromSpherical(this.spherical);
+      this.camera.position.add(this.target);
+      this.camera.lookAt(this.target);
+    }
+  }
+  
+  const controls3d = new OrbitControls(camera3d, renderer3d.domElement);
+  const controlsSky = new OrbitControls(cameraSky, rendererSky.domElement);
+  controlsSky.spherical.radius = 0.1;
+  
+  // ============ Lighting ============
+  const ambientLight = new THREE.AmbientLight(0x0a0a1a, 0.3);
+  scene3d.add(ambientLight);
+  
+  const sunLight = new THREE.DirectionalLight(0xffffff, 2);
+  sunLight.castShadow = true;
+  sunLight.shadow.mapSize.width = 4096;
+  sunLight.shadow.mapSize.height = 4096;
+  scene3d.add(sunLight);
+  
+  const moonLight = new THREE.DirectionalLight(0x9999aa, 0.5);
+  scene3d.add(moonLight);
+  
+  // ============ Earth (Ultra-realistic) ============
+  const earthGeometry = new THREE.SphereGeometry(1, 128, 128);
+  
+  // Create realistic Earth texture with detailed continents
+  const earthCanvas = document.createElement('canvas');
+  earthCanvas.width = 2048;
+  earthCanvas.height = 1024;
+  const earthCtx = earthCanvas.getContext('2d');
+  
+  function createEarthTexture(sunLon = 0) {
+    // Clear canvas
+    earthCtx.clearRect(0, 0, 2048, 1024);
+    
+    // Create realistic Earth base with depth
+    const earthBaseGradient = earthCtx.createRadialGradient(1024, 512, 0, 1024, 512, 1024);
+    earthBaseGradient.addColorStop(0, '#2B5F75');
+    earthBaseGradient.addColorStop(0.3, '#1E4A5F');
+    earthBaseGradient.addColorStop(0.7, '#0F2E3D');
+    earthBaseGradient.addColorStop(1, '#051419');
+    earthCtx.fillStyle = earthBaseGradient;
+    earthCtx.fillRect(0, 0, 2048, 1024);
+    
+    // Add ocean depth variations
+    for (let i = 0; i < 50; i++) {
+      const x = Math.random() * 2048;
+      const y = Math.random() * 1024;
+      const size = Math.random() * 100 + 50;
+      const depthGradient = earthCtx.createRadialGradient(x, y, 0, x, y, size);
+      depthGradient.addColorStop(0, 'rgba(45, 95, 117, 0.3)');
+      depthGradient.addColorStop(1, 'rgba(15, 46, 61, 0.1)');
+      earthCtx.fillStyle = depthGradient;
+      earthCtx.fillRect(x - size, y - size, size * 2, size * 2);
+    }
+    
+    // Day/Night terminator calculation
+    const terminatorX = ((sunLon + 90) % 360) * (2048 / 360);
+    
+    // Enhanced night side with realistic gradient
+    const nightGradient = earthCtx.createLinearGradient(terminatorX - 300, 0, terminatorX + 300, 0);
+    nightGradient.addColorStop(0, 'rgba(5, 15, 35, 0.9)');
+    nightGradient.addColorStop(0.3, 'rgba(10, 20, 40, 0.7)');
+    nightGradient.addColorStop(0.5, 'rgba(15, 30, 50, 0.4)');
+    nightGradient.addColorStop(0.7, 'rgba(20, 40, 60, 0.2)');
+    nightGradient.addColorStop(1, 'rgba(25, 50, 75, 0)');
+    
+    // Apply night gradient with proper wrapping
+    earthCtx.save();
+    earthCtx.fillStyle = nightGradient;
+    if (terminatorX > 1024) {
+      earthCtx.fillRect(0, 0, terminatorX - 1024, 1024);
+      earthCtx.fillRect(terminatorX, 0, 2048 - terminatorX, 1024);
+    } else {
+      earthCtx.fillRect(terminatorX, 0, 1024, 1024);
+    }
+    earthCtx.restore();
+    
+    // Enhanced continental rendering with realistic colors and elevation
+    earthCtx.save();
+    earthCtx.shadowBlur = 8;
+    earthCtx.shadowColor = 'rgba(0,0,0,0.4)';
+    
+    // Land base color with elevation variations
+    const landColors = [
+      '#2D4A2B', // Lowlands - dark green
+      '#3A5C38', // Plains - medium green  
+      '#4A6B47', // Hills - lighter green
+      '#5D7A5A', // Mountains - brownish green
+      '#6B8268', // High mountains - gray green
+      '#7A8F77'  // Peaks - light gray green
+    ];
+    
+    // Function to draw realistic continent with elevation
+    function drawContinent(points, elevationMap, desertRegions = []) {
+      earthCtx.beginPath();
+      earthCtx.moveTo(points[0][0], points[0][1]);
+      for (let i = 1; i < points.length; i++) {
+        earthCtx.lineTo(points[i][0], points[i][1]);
+      }
+      earthCtx.closePath();
+      
+      // Base terrain color
+      const baseColor = landColors[Math.floor(Math.random() * 3)];
+      earthCtx.fillStyle = baseColor;
+      earthCtx.fill();
+      
+      // Add elevation variations
+      elevationMap.forEach(([x, y, elevation, size]) => {
+        const colorIndex = Math.min(elevation, landColors.length - 1);
+        const elevationGradient = earthCtx.createRadialGradient(x, y, 0, x, y, size);
+        elevationGradient.addColorStop(0, landColors[colorIndex]);
+        elevationGradient.addColorStop(1, 'rgba(45, 74, 43, 0)');
+        earthCtx.fillStyle = elevationGradient;
+        earthCtx.beginPath();
+        earthCtx.arc(x, y, size, 0, Math.PI * 2);
+        earthCtx.fill();
+      });
+      
+      // Add desert regions
+      desertRegions.forEach(([x, y, size]) => {
+        const desertGradient = earthCtx.createRadialGradient(x, y, 0, x, y, size);
+        desertGradient.addColorStop(0, '#D4A574');
+        desertGradient.addColorStop(0.5, '#C19A6B');
+        desertGradient.addColorStop(1, 'rgba(196, 154, 107, 0)');
+        earthCtx.fillStyle = desertGradient;
+        earthCtx.beginPath();
+        earthCtx.arc(x, y, size, 0, Math.PI * 2);
+        earthCtx.fill();
+      });
+      
+      // Outline
+      earthCtx.strokeStyle = 'rgba(26, 58, 26, 0.7)';
+      earthCtx.lineWidth = 1;
+      earthCtx.stroke();
+    }
+    
+    // North America with Rocky Mountains and Great Plains
+    drawContinent([
+      [280, 180], [350, 160], [420, 170], [480, 190], [530, 210], [580, 280], 
+      [570, 350], [540, 420], [500, 460], [450, 480], [400, 470], [350, 440], 
+      [300, 400], [270, 350], [260, 280], [270, 220]
+    ], [
+      [380, 250, 4, 40], // Rocky Mountains
+      [420, 280, 3, 35], // Rockies continued
+      [460, 320, 2, 30], // Great Plains
+      [340, 200, 3, 25], // Canadian Shield
+      [500, 200, 2, 20]  // Appalachians
+    ], [
+      [480, 380, 25] // Southwest desert
+    ]);
+    
+    // South America with Andes
+    drawContinent([
+      [420, 500], [460, 485], [500, 490], [520, 520], [530, 580], [525, 640], 
+      [510, 700], [490, 760], [470, 810], [450, 840], [420, 835], [400, 820], 
+      [390, 780], [385, 720], [390, 660], [395, 600], [405, 540]
+    ], [
+      [430, 600, 5, 30], // Andes - North
+      [440, 700, 5, 35], // Andes - Central
+      [450, 780, 4, 25], // Andes - South
+      [480, 550, 2, 40], // Brazilian Highlands
+      [470, 650, 1, 45]  // Amazon Basin
+    ], [
+      [490, 520, 20] // Patagonia
+    ]);
+    
+    // Europe with Alps and Scandinavian Mountains
+    drawContinent([
+      [920, 180], [980, 160], [1040, 170], [1080, 200], [1100, 240], 
+      [1090, 280], [1060, 310], [1020, 320], [980, 315], [940, 300], [920, 250]
+    ], [
+      [1000, 280, 4, 20], // Alps
+      [960, 180, 3, 25], // Scandinavian Mountains
+      [1040, 200, 2, 15] // Carpathians
+    ]);
+    
+    // Asia with Himalayas and Siberian regions
+    drawContinent([
+      [1100, 140], [1300, 130], [1500, 140], [1650, 160], [1700, 200], 
+      [1720, 260], [1700, 320], [1650, 380], [1550, 420], [1400, 450], 
+      [1250, 460], [1150, 440], [1100, 400], [1080, 350], [1090, 280], [1110, 200]
+    ], [
+      [1400, 350, 5, 50], // Himalayas
+      [1500, 300, 4, 40], // Hindu Kush
+      [1250, 200, 2, 60], // Siberian Highlands
+      [1600, 200, 3, 35], // Ural Mountains
+      [1550, 380, 3, 30]  // Tibetan Plateau
+    ], [
+      [1300, 300, 40], // Gobi Desert
+      [1200, 380, 30], // Taklamakan Desert
+      [1500, 250, 25]  // Central Asian Steppes
+    ]);
+    
+    // Africa with varied terrain
+    drawContinent([
+      [980, 380], [1050, 360], [1120, 370], [1180, 390], [1220, 430], 
+      [1240, 480], [1250, 540], [1240, 600], [1220, 660], [1180, 720], 
+      [1140, 780], [1100, 820], [1040, 830], [980, 825], [940, 800], 
+      [920, 760], [930, 700], [950, 640], [965, 580], [975, 520], [980, 460]
+    ], [
+      [1100, 450, 3, 35], // Ethiopian Highlands
+      [1050, 700, 2, 40], // East African Rift
+      [980, 600, 1, 30],  // Central African Plateau
+      [1150, 380, 2, 25]  // Atlas Mountains
+    ], [
+      [1080, 400, 50], // Sahara Desert
+      [1120, 750, 30], // Kalahari Desert
+      [1180, 420, 25]  // Arabian Desert
+    ]);
+    
+    // Australia with Outback
+    drawContinent([
+      [1430, 630], [1520, 620], [1580, 630], [1620, 660], [1630, 700], 
+      [1610, 730], [1570, 750], [1520, 760], [1470, 755], [1430, 740], [1420, 700]
+    ], [
+      [1500, 680, 2, 25], // Great Dividing Range
+      [1560, 700, 1, 30]  // Blue Mountains
+    ], [
+      [1520, 690, 60] // Australian Outback
+    ]);
+    
+    // Antarctica with realistic ice formations
+    earthCtx.fillStyle = '#F0F8FF';
+    earthCtx.fillRect(0, 900, 2048, 124);
+    
+    // Add ice shelf details
+    for (let i = 0; i < 15; i++) {
+      const x = Math.random() * 2048;
+      const y = 900 + Math.random() * 100;
+      const iceGradient = earthCtx.createRadialGradient(x, y, 0, x, y, 30);
+      iceGradient.addColorStop(0, '#FFFFFF');
+      iceGradient.addColorStop(1, 'rgba(240, 248, 255, 0)');
+      earthCtx.fillStyle = iceGradient;
+      earthCtx.beginPath();
+      earthCtx.arc(x, y, 30, 0, Math.PI * 2);
+      earthCtx.fill();
+    }
+    
+    // Greenland with glacial features
+    earthCtx.fillStyle = '#E8F4F8';
+    earthCtx.fillRect(580, 80, 100, 140);
+    
+    // Add glacial texture
+    for (let i = 0; i < 8; i++) {
+      const x = 580 + Math.random() * 100;
+      const y = 80 + Math.random() * 140;
+      const glacierGradient = earthCtx.createRadialGradient(x, y, 0, x, y, 15);
+      glacierGradient.addColorStop(0, '#F0FFFF');
+      glacierGradient.addColorStop(1, 'rgba(232, 244, 248, 0)');
+      earthCtx.fillStyle = glacierGradient;
+      earthCtx.beginPath();
+      earthCtx.arc(x, y, 15, 0, Math.PI * 2);
+      earthCtx.fill();
+    }
+    
+    // City lights on night side
+    if (terminatorX > 0) {
+      earthCtx.fillStyle = '#ffff88';
+      earthCtx.globalAlpha = 0.6;
+      
+      // Major city clusters
+      const cities = [
+        [400, 350], [450, 300], [500, 320], // Americas
+        [1000, 250], [1050, 200], [1100, 180], // Europe
+        [1300, 200], [1400, 250], [1500, 300], // Asia
+        [1100, 500], [1150, 550] // Africa
+      ];
+      
+      cities.forEach(([x, y]) => {
+        if ((x < terminatorX && terminatorX < 1024) || (terminatorX > 1024 && (x < terminatorX - 1024 || x > terminatorX))) {
+          earthCtx.beginPath();
+          earthCtx.arc(x, y, 3, 0, Math.PI * 2);
+          earthCtx.fill();
+        }
+      });
+      
+      earthCtx.globalAlpha = 1;
+    }
+    
+    return new THREE.CanvasTexture(earthCanvas);
+  }
+  
+  let earthTexture = createEarthTexture();
+  
+  const earthMaterial = new THREE.MeshPhongMaterial({
+    map: earthTexture,
+    bumpScale: 0.05,
+    specularMap: earthTexture,
+    specular: new THREE.Color('grey'),
+    shininess: 20
+  });
+  
+  const earth = new THREE.Mesh(earthGeometry, earthMaterial);
+  earth.receiveShadow = true;
+  earth.castShadow = true;
+  scene3d.add(earth);
+  
+  // Enhanced Multi-layer Atmosphere
+  const atmosphereGeometry = new THREE.SphereGeometry(1.02, 128, 128);
+  const atmosphereMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      sunDirection: { value: new THREE.Vector3(0, 0, 1) },
+      time: { value: 0 }
+    },
+    vertexShader: `
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        vPosition = position;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform vec3 sunDirection;
+      uniform float time;
+      varying vec3 vNormal;
+      varying vec3 vPosition;
+      
+      void main() {
+        vec3 normal = normalize(vNormal);
+        float sunFacing = max(0.0, dot(normal, sunDirection));
+        float rimLight = pow(0.9 - dot(normal, vec3(0, 0, 1.0)), 1.5);
+        
+        // Atmospheric scattering colors
+        vec3 dayColor = vec3(0.4, 0.7, 1.0);
+        vec3 sunsetColor = vec3(1.0, 0.5, 0.2);
+        vec3 nightColor = vec3(0.1, 0.2, 0.5);
+        
+        // Blend colors based on sun angle
+        vec3 atmosphereColor = mix(nightColor, dayColor, sunFacing);
+        atmosphereColor = mix(atmosphereColor, sunsetColor, 
+                            smoothstep(0.0, 0.3, sunFacing) * smoothstep(0.7, 0.3, sunFacing));
+        
+        // Aurora-like effect at poles
+        float polarEffect = abs(vPosition.y) > 0.8 ? 
+                           sin(time * 2.0 + vPosition.x * 5.0) * 0.3 + 0.7 : 1.0;
+        
+        float opacity = rimLight * (0.3 + 0.4 * sunFacing) * polarEffect;
+        gl_FragColor = vec4(atmosphereColor, opacity);
+      }
+    `,
+    blending: THREE.AdditiveBlending,
+    side: THREE.BackSide,
+    transparent: true
+  });
+  const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
+  scene3d.add(atmosphere);
+  
+  // Outer atmospheric glow
+  const outerAtmosphereGeometry = new THREE.SphereGeometry(1.05, 64, 64);
+  const outerAtmosphereMaterial = new THREE.ShaderMaterial({
+    vertexShader: `
+      varying vec3 vNormal;
+      void main() {
+        vNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      varying vec3 vNormal;
+      void main() {
+        float intensity = pow(0.5 - dot(vNormal, vec3(0, 0, 1.0)), 3.0);
+        gl_FragColor = vec4(0.2, 0.4, 0.8, 1.0) * intensity;
+      }
+    `,
+    blending: THREE.AdditiveBlending,
+    side: THREE.BackSide,
+    transparent: true
+  });
+  const outerAtmosphere = new THREE.Mesh(outerAtmosphereGeometry, outerAtmosphereMaterial);
+  scene3d.add(outerAtmosphere);
+  
+  // ============ Celestial Sphere ============
+  const celestialSphere = new THREE.Group();
+  scene3d.add(celestialSphere);
+  
+  // Famous stars background field
+  const starsGeometry = new THREE.BufferGeometry();
+  const starPositions = [];
+  const starColors = [];
+  const starSizes = [];
+  
+  // Generate smaller background star field (dimmer stars)
+  for (let i = 0; i < 800; i++) {
+    const ra = Math.random() * 360;
+    const dec = (Math.random() - 0.5) * 180;
+    const r = 100;
+    
+    const raRad = ra * DEG2RAD;
+    const decRad = dec * DEG2RAD;
+    
+    starPositions.push(
+      r * Math.cos(decRad) * Math.cos(raRad),
+      r * Math.sin(decRad),
+      r * Math.cos(decRad) * Math.sin(raRad)
+    );
+    
+    const brightness = Math.random() * 0.3; // Dimmer background
+    const temp = Math.random();
+    starColors.push(0.8 + brightness, 0.8 + brightness - temp * 0.2, 0.8 + brightness - temp * 0.3);
+    starSizes.push(Math.random() * 1.5 + 0.5);
+  }
+  
+  // Advanced stellar classification colors
+  const stellarColors = {
+    'O': 0x9bb0ff, // Blue supergiant
+    'B': 0xaabfff, // Blue-white giant
+    'A': 0xcad8ff, // White
+    'F': 0xfff4ea, // Yellow-white
+    'G': 0xfff5b4, // Yellow (like Sun)
+    'K': 0xffd2a1, // Orange
+    'M': 0xffad51  // Red
+  };
+  
+  function getStarColor(star) {
+    if (star.color) return star.color;
+    
+    // Classify by temperature based on magnitude and name
+    if (star.name.includes('Rigel') || star.name.includes('Bellatrix')) return stellarColors.B;
+    if (star.name.includes('Vega') || star.name.includes('Sirius')) return stellarColors.A;
+    if (star.name.includes('Canopus') || star.name.includes('Procyon')) return stellarColors.F;
+    if (star.name.includes('Capella') || star.name.includes('Polaris')) return stellarColors.G;
+    if (star.name.includes('Arcturus') || star.name.includes('Aldebaran')) return stellarColors.K;
+    if (star.name.includes('Betelgeuse') || star.name.includes('Antares')) return stellarColors.M;
+    
+    return star.color || 0xffffff;
+  }
+  
+  // Enhanced star rendering system
+  const famousStarMeshes = [];
+  FAMOUS_STARS.forEach(star => {
+    const r = 100;
+    const raRad = star.ra * DEG2RAD;
+    const decRad = star.dec * DEG2RAD;
+    
+    const pos = new THREE.Vector3(
+      r * Math.cos(decRad) * Math.cos(raRad),
+      r * Math.sin(decRad),
+      r * Math.cos(decRad) * Math.sin(raRad)
+    );
+    
+    // Advanced size calculation based on magnitude
+    const starSize = Math.max(0.2, 1.2 + (1 - star.mag) * 0.2);
+    const stellarColor = getStarColor(star);
+    
+    // Create star with shader material for scintillation
+    const starGeom = new THREE.SphereGeometry(starSize, 24, 24);
+    const starMat = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        baseColor: { value: new THREE.Color(stellarColor) },
+        magnitude: { value: star.mag },
+        scintillation: { value: Math.random() * 2 + 1 }
+      },
+      vertexShader: `
+        uniform float time;
+        uniform float scintillation;
+        varying vec2 vUv;
+        varying float vDistortion;
+        
+        void main() {
+          vUv = uv;
+          
+          // Add slight atmospheric scintillation
+          vec3 pos = position;
+          float distortion = sin(time * scintillation * 3.0) * 0.1 + 
+                            sin(time * scintillation * 5.0) * 0.05;
+          pos += normal * distortion;
+          vDistortion = distortion;
+          
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform vec3 baseColor;
+        uniform float magnitude;
+        uniform float scintillation;
+        varying vec2 vUv;
+        varying float vDistortion;
+        
+        void main() {
+          vec2 center = vec2(0.5, 0.5);
+          float dist = distance(vUv, center);
+          
+          // Star disk with soft edges
+          float intensity = 1.0 - smoothstep(0.0, 0.5, dist);
+          
+          // Brightness variation for scintillation
+          float twinkle = sin(time * scintillation * 4.0) * 0.2 + 
+                         sin(time * scintillation * 6.0) * 0.1 + 0.8;
+          
+          // Brightness based on magnitude (lower magnitude = brighter)
+          float brightness = clamp(3.0 - magnitude, 0.3, 2.0) * twinkle;
+          
+          // Color temperature variation
+          vec3 color = baseColor * brightness;
+          
+          // Add subtle color shift for realism
+          color.r += sin(time * scintillation * 2.0) * 0.1;
+          color.b += cos(time * scintillation * 2.5) * 0.1;
+          
+          gl_FragColor = vec4(color, intensity * brightness);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending
+    });
+    
+    const starMesh = new THREE.Mesh(starGeom, starMat);
+    starMesh.position.copy(pos);
+    starMesh.userData = star;
+    celestialSphere.add(starMesh);
+    famousStarMeshes.push(starMesh);
+    
+    // Enhanced diffraction spikes for very bright stars
+    if (star.mag < 0.5) {
+      const spikeGeom = new THREE.PlaneGeometry(starSize * 8, starSize * 0.5);
+      const spikeMat = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { value: 0 },
+          color: { value: new THREE.Color(stellarColor) }
+        },
+        vertexShader: `
+          uniform float time;
+          void main() {
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform float time;
+          uniform vec3 color;
+          void main() {
+            float intensity = exp(-abs(gl_PointCoord.y - 0.5) * 8.0);
+            intensity *= sin(time * 3.0) * 0.3 + 0.7;
+            gl_FragColor = vec4(color, intensity * 0.6);
+          }
+        `,
+        transparent: true,
+        blending: THREE.AdditiveBlending
+      });
+      
+      // Create cross-shaped diffraction spikes
+      const spike1 = new THREE.Mesh(spikeGeom, spikeMat);
+      const spike2 = new THREE.Mesh(spikeGeom, spikeMat);
+      spike2.rotation.z = Math.PI / 2;
+      
+      starMesh.add(spike1);
+      starMesh.add(spike2);
+    }
+    
+    // Multi-layer halo system for bright stars
+    if (star.mag < 1.5) {
+      for (let i = 0; i < 3; i++) {
+        const haloSize = starSize * (2 + i * 0.8);
+        const haloOpacity = 0.08 / (i + 1);
+        
+        const haloGeom = new THREE.SphereGeometry(haloSize, 16, 16);
+        const haloMat = new THREE.ShaderMaterial({
+          uniforms: {
+            time: { value: 0 },
+            color: { value: new THREE.Color(stellarColor) },
+            layer: { value: i }
+          },
+          vertexShader: `
+            uniform float time;
+            uniform float layer;
+            void main() {
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `,
+          fragmentShader: `
+            uniform float time;
+            uniform vec3 color;
+            uniform float layer;
+            void main() {
+              float pulse = sin(time * (2.0 + layer)) * 0.3 + 0.7;
+              gl_FragColor = vec4(color, ${haloOpacity} * pulse);
+            }
+          `,
+          transparent: true,
+          blending: THREE.AdditiveBlending,
+          side: THREE.BackSide
+        });
+        
+        const haloMesh = new THREE.Mesh(haloGeom, haloMat);
+        starMesh.add(haloMesh);
+      }
+    }
+    
+    // Add to sky scene with simplified version
+    const skyStarGeom = new THREE.SphereGeometry(starSize, 16, 16);
+    const skyStarMat = new THREE.MeshBasicMaterial({ 
+      color: stellarColor,
+      transparent: true,
+      opacity: Math.min(1, 0.8 + (2 - star.mag) * 0.1)
+    });
+    const skyStarMesh = new THREE.Mesh(skyStarGeom, skyStarMat);
+    skyStarMesh.position.copy(pos);
+    skyStarMesh.userData = star;
+    sceneSky.add(skyStarMesh);
+  });
+  
+  starsGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+  starsGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
+  starsGeometry.setAttribute('size', new THREE.Float32BufferAttribute(starSizes, 1));
+  
+  const starsMaterial = new THREE.PointsMaterial({
+    size: 0.05,
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.6,
+    sizeAttenuation: false,
+    blending: THREE.AdditiveBlending
+  });
+  
+  const starsPoints = new THREE.Points(starsGeometry, starsMaterial);
+  celestialSphere.add(starsPoints);
+  
+  // Clone for sky view
+  const skyStars = starsPoints.clone();
+  sceneSky.add(skyStars);
+  
+  // ============ Advanced Cosmic Background ============
+  const cosmicGroup = new THREE.Group();
+  celestialSphere.add(cosmicGroup);
+  
+  // Enhanced Milky Way with realistic structure
+  const milkyWayGeometry = new THREE.TorusGeometry(95, 12, 16, 100, Math.PI * 2);
+  const milkyWayMaterial = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { value: 0 },
+      opacity: { value: 0.15 }
+    },
+    vertexShader: `
+      uniform float time;
+      varying vec3 vPosition;
+      varying vec2 vUv;
+      void main() {
+        vPosition = position;
+        vUv = uv;
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float time;
+      uniform float opacity;
+      varying vec3 vPosition;
+      varying vec2 vUv;
+      
+      // Noise function for realistic texture
+      float noise(vec2 p) {
+        return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
+      }
+      
+      void main() {
+        vec2 uv = vUv;
+        
+        // Create galactic structure
+        float galacticArm1 = sin(uv.x * 12.0 + time * 0.1) * 0.3 + 0.7;
+        float galacticArm2 = sin(uv.x * 8.0 + time * 0.15 + 2.0) * 0.4 + 0.6;
+        
+        // Add dust lane variations
+        float dustLanes = abs(sin(uv.y * 20.0)) * 0.5;
+        
+        // Combine structures
+        float intensity = (galacticArm1 * galacticArm2) * (1.0 - dustLanes);
+        
+        // Add color variation
+        vec3 color1 = vec3(0.2, 0.3, 0.6); // Blue regions
+        vec3 color2 = vec3(0.6, 0.4, 0.2); // Brown dust
+        vec3 color3 = vec3(0.8, 0.6, 0.4); // Star forming regions
+        
+        float colorMix = noise(uv * 10.0 + time * 0.05);
+        vec3 finalColor = mix(mix(color1, color2, colorMix), color3, intensity * 0.5);
+        
+        // Brightness variation
+        float brightness = sin(time * 0.5 + uv.x * 5.0) * 0.2 + 0.8;
+        
+        gl_FragColor = vec4(finalColor * brightness, intensity * opacity);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    side: THREE.DoubleSide
+  });
+  
+  const milkyWay = new THREE.Mesh(milkyWayGeometry, milkyWayMaterial);
+  milkyWay.rotation.x = Math.PI / 2;
+  milkyWay.rotation.z = Math.PI / 6; // Tilt the galactic plane
+  cosmicGroup.add(milkyWay);
+  
+  // Create spectacular nebulae
+  const nebulae = [
+    { name: 'Orion Nebula', ra: 84, dec: -5, color: [1.0, 0.3, 0.3], size: 8 },
+    { name: 'Eagle Nebula', ra: 274, dec: -14, color: [0.3, 0.8, 0.3], size: 6 },
+    { name: 'Ring Nebula', ra: 283, dec: 33, color: [0.3, 0.3, 1.0], size: 4 },
+    { name: 'Rosette Nebula', ra: 98, dec: 5, color: [1.0, 0.2, 0.5], size: 7 },
+    { name: 'Horsehead Nebula', ra: 85, dec: -2, color: [0.8, 0.4, 0.2], size: 5 },
+    { name: 'Cat\'s Eye Nebula', ra: 269, dec: 67, color: [0.2, 0.9, 0.8], size: 3 }
+  ];
+  
+  nebulae.forEach(nebula => {
+    const r = 97;
+    const raRad = nebula.ra * DEG2RAD;
+    const decRad = nebula.dec * DEG2RAD;
+    
+    const pos = new THREE.Vector3(
+      r * Math.cos(decRad) * Math.cos(raRad),
+      r * Math.sin(decRad),
+      r * Math.cos(decRad) * Math.sin(raRad)
+    );
+    
+    const nebulaGeometry = new THREE.SphereGeometry(nebula.size, 32, 32);
+    const nebulaMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        nebulaColor: { value: new THREE.Vector3(...nebula.color) },
+        intensity: { value: 0.3 }
+      },
+      vertexShader: `
+        uniform float time;
+        varying vec3 vPosition;
+        varying vec3 vNormal;
+        void main() {
+          vPosition = position;
+          vNormal = normal;
+          
+          // Add slight movement to simulate gas flow
+          vec3 pos = position;
+          pos += sin(time * 0.3 + position.x * 0.5) * normal * 0.1;
+          
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform vec3 nebulaColor;
+        uniform float intensity;
+        varying vec3 vPosition;
+        varying vec3 vNormal;
+        
+        // Fractal noise for realistic nebula texture
+        float noise(vec3 p) {
+          return fract(sin(dot(p, vec3(127.1, 311.7, 543.5))) * 43758.5453);
+        }
+        
+        float fractalNoise(vec3 p) {
+          float f = 0.0;
+          f += 0.5000 * noise(p); p *= 2.0;
+          f += 0.2500 * noise(p); p *= 2.0;
+          f += 0.1250 * noise(p); p *= 2.0;
+          f += 0.0625 * noise(p);
+          return f;
+        }
+        
+        void main() {
+          vec3 pos = vPosition;
+          
+          // Create wispy nebula structure
+          float density = fractalNoise(pos * 0.5 + time * 0.1);
+          density *= fractalNoise(pos * 0.8 - time * 0.05);
+          
+          // Add distance falloff
+          float dist = length(pos);
+          float falloff = 1.0 - smoothstep(0.0, 2.0, dist);
+          
+          // Color variations within the nebula
+          vec3 color1 = nebulaColor;
+          vec3 color2 = nebulaColor * vec3(0.5, 1.2, 0.8);
+          vec3 finalColor = mix(color1, color2, sin(time * 0.5 + pos.x) * 0.5 + 0.5);
+          
+          // Brightness pulsing
+          float pulse = sin(time * 2.0 + pos.y) * 0.3 + 0.7;
+          
+          float alpha = density * falloff * intensity * pulse;
+          gl_FragColor = vec4(finalColor, alpha);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide
+    });
+    
+    const nebulaMesh = new THREE.Mesh(nebulaGeometry, nebulaMaterial);
+    nebulaMesh.position.copy(pos);
+    cosmicGroup.add(nebulaMesh);
+  });
+  
+  // Add cosmic dust clouds and star-forming regions
+  for (let i = 0; i < 40; i++) {
+    const cloudSize = Math.random() * 3 + 1;
+    const cloudGeometry = new THREE.SphereGeometry(cloudSize, 16, 16);
+    const cloudMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        cloudColor: { 
+          value: new THREE.Vector3(
+            0.2 + Math.random() * 0.6,
+            0.2 + Math.random() * 0.4,
+            0.4 + Math.random() * 0.6
+          )
+        }
+      },
+      vertexShader: `
+        uniform float time;
+        void main() {
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform vec3 cloudColor;
+        void main() {
+          float pulse = sin(time * 0.8) * 0.4 + 0.6;
+          gl_FragColor = vec4(cloudColor, 0.03 * pulse);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending
+    });
+    
+    // Random positioning throughout the celestial sphere
+    const angle = Math.random() * Math.PI * 2;
+    const inclination = Math.random() * Math.PI;
+    const radius = 85 + Math.random() * 15;
+    
+    const cloud = new THREE.Mesh(cloudGeometry, cloudMaterial);
+    cloud.position.set(
+      Math.sin(inclination) * Math.cos(angle) * radius,
+      Math.cos(inclination) * radius,
+      Math.sin(inclination) * Math.sin(angle) * radius
+    );
+    cosmicGroup.add(cloud);
+  }
+  
+  // Add distant galaxy representations
+  for (let i = 0; i < 8; i++) {
+    const galaxyGeometry = new THREE.PlaneGeometry(6, 2);
+    const galaxyMaterial = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        galaxyType: { value: Math.random() }
+      },
+      vertexShader: `
+        uniform float time;
+        void main() {
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform float galaxyType;
+        void main() {
+          vec2 uv = gl_FragCoord.xy;
+          
+          // Different galaxy types
+          vec3 color = galaxyType < 0.5 ? 
+            vec3(0.9, 0.8, 0.6) : // Elliptical - yellowish
+            vec3(0.6, 0.7, 0.9);   // Spiral - bluish
+          
+          float brightness = sin(time * 1.5) * 0.2 + 0.3;
+          gl_FragColor = vec4(color, 0.15 * brightness);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending
+    });
+    
+    // Position at far distances
+    const angle = Math.random() * Math.PI * 2;
+    const inclination = Math.random() * Math.PI;
+    const radius = 120;
+    
+    const galaxy = new THREE.Mesh(galaxyGeometry, galaxyMaterial);
+    galaxy.position.set(
+      Math.sin(inclination) * Math.cos(angle) * radius,
+      Math.cos(inclination) * radius,
+      Math.sin(inclination) * Math.sin(angle) * radius
+    );
+    galaxy.lookAt(0, 0, 0);
+    cosmicGroup.add(galaxy);
+  }
+  
+  // Clone enhanced cosmic background for sky view
+  const skyCosmicGroup = cosmicGroup.clone();
+  sceneSky.add(skyCosmicGroup);
+  
+  // ============ Constellations ============
+  const constellationGroup = new THREE.Group();
+  celestialSphere.add(constellationGroup);
+  
+  const constellationLabels = [];
+  
+  Object.entries(CONSTELLATIONS).forEach(([name, data]) => {
+    const points = [];
+    data.stars.forEach(([ra, dec]) => {
+      const r = 99;
+      const raRad = ra * DEG2RAD;
+      const decRad = dec * DEG2RAD;
+      points.push(new THREE.Vector3(
+        r * Math.cos(decRad) * Math.cos(raRad),
+        r * Math.sin(decRad),
+        r * Math.cos(decRad) * Math.sin(raRad)
+      ));
+    });
+    
+    // Draw constellation lines
+    data.lines.forEach(([i, j]) => {
+      const lineGeom = new THREE.BufferGeometry().setFromPoints([points[i], points[j]]);
+      const lineMat = new THREE.LineBasicMaterial({ 
+        color: 0x5577cc, 
+        opacity: 0.5, 
+        transparent: true,
+        linewidth: 2
+      });
+      const line = new THREE.Line(lineGeom, lineMat);
+      constellationGroup.add(line);
+      
+      // Add to sky view
+      const skyLine = line.clone();
+      sceneSky.add(skyLine);
+    });
+    
+    // Create artistic constellation boundary
+    if (data.stars.length > 2) {
+      const boundaryPoints = [...data.stars];
+      if (boundaryPoints.length > 3) {
+        // Create a smooth boundary using the constellation stars
+        const boundaryGeom = new THREE.BufferGeometry();
+        const boundaryPositions = [];
+        
+        for (let i = 0; i <= boundaryPoints.length; i++) {
+          const point = boundaryPoints[i % boundaryPoints.length];
+          const r = 98.5;
+          const raRad = point[0] * DEG2RAD;
+          const decRad = point[1] * DEG2RAD;
+          boundaryPositions.push(
+            r * Math.cos(decRad) * Math.cos(raRad),
+            r * Math.sin(decRad),
+            r * Math.cos(decRad) * Math.sin(raRad)
+          );
+        }
+        
+        boundaryGeom.setAttribute('position', new THREE.Float32BufferAttribute(boundaryPositions, 3));
+        const boundaryMat = new THREE.ShaderMaterial({
+          uniforms: {
+            time: { value: 0 },
+            opacity: { value: 0.15 }
+          },
+          vertexShader: `
+            uniform float time;
+            void main() {
+              gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+            }
+          `,
+          fragmentShader: `
+            uniform float time;
+            uniform float opacity;
+            void main() {
+              float pulse = sin(time * 0.5) * 0.3 + 0.7;
+              gl_FragColor = vec4(0.4, 0.6, 0.9, opacity * pulse);
+            }
+          `,
+          transparent: true,
+          blending: THREE.AdditiveBlending
+        });
+        
+        const boundaryLine = new THREE.Line(boundaryGeom, boundaryMat);
+        constellationGroup.add(boundaryLine);
+        
+        // Add to sky view
+        const skyBoundary = boundaryLine.clone();
+        sceneSky.add(skyBoundary);
+      }
+    }
+    
+    // Enhanced constellation label with artistic design
+    if (data.label) {
+      const labelGeom = new THREE.PlaneGeometry(12, 3);
+      const canvas = document.createElement('canvas');
+      canvas.width = 384;
+      canvas.height = 96;
+      const ctx = canvas.getContext('2d');
+      
+      // Create artistic background
+      const gradient = ctx.createLinearGradient(0, 0, 384, 96);
+      gradient.addColorStop(0, 'rgba(65, 105, 225, 0.8)');
+      gradient.addColorStop(0.5, 'rgba(138, 43, 226, 0.8)');
+      gradient.addColorStop(1, 'rgba(72, 61, 139, 0.8)');
+      
+      ctx.fillStyle = gradient;
+      ctx.roundRect = function(x, y, w, h, r) {
+        this.beginPath();
+        this.moveTo(x + r, y);
+        this.arcTo(x + w, y, x + w, y + h, r);
+        this.arcTo(x + w, y + h, x, y + h, r);
+        this.arcTo(x, y + h, x, y, r);
+        this.arcTo(x, y, x + w, y, r);
+        this.closePath();
+        return this;
+      };
+      
+      ctx.roundRect(0, 0, 384, 96, 15);
+      ctx.fill();
+      
+      // Add border
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.6)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      
+      // Add constellation name
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 28px serif';
+      ctx.textAlign = 'center';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 4;
+      ctx.fillText(name, 192, 38);
+      
+      // Add subtitle (constellation type)
+      const constellationTypes = {
+        'Orion': 'The Hunter',
+        'Ursa Major': 'Great Bear', 
+        'Ursa Minor': 'Little Bear',
+        'Draco': 'The Dragon',
+        'Cassiopeia': 'The Queen',
+        'Cygnus': 'The Swan',
+        'Leo': 'The Lion',
+        'Scorpius': 'The Scorpion',
+        'Sagittarius': 'The Archer',
+        'Aquarius': 'Water Bearer',
+        'Gemini': 'The Twins',
+        'Virgo': 'The Maiden',
+        'Taurus': 'The Bull',
+        'Aries': 'The Ram',
+        'Cancer': 'The Crab',
+        'Libra': 'The Scales',
+        'Capricornus': 'Sea Goat',
+        'Pisces': 'The Fishes'
+      };
+      
+      const subtitle = constellationTypes[name] || 'Constellation';
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+      ctx.font = '16px sans-serif';
+      ctx.fillText(subtitle, 192, 65);
+      
+      // Add decorative stars
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)';
+      for (let i = 0; i < 5; i++) {
+        const x = 30 + i * 70;
+        const y = 15;
+        ctx.beginPath();
+        ctx.arc(x, y, 2, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      const labelTexture = new THREE.CanvasTexture(canvas);
+      const labelMat = new THREE.ShaderMaterial({
+        uniforms: {
+          time: { value: 0 },
+          map: { value: labelTexture },
+          opacity: { value: 0.9 }
+        },
+        vertexShader: `
+          uniform float time;
+          varying vec2 vUv;
+          void main() {
+            vUv = uv;
+            gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+          }
+        `,
+        fragmentShader: `
+          uniform float time;
+          uniform sampler2D map;
+          uniform float opacity;
+          varying vec2 vUv;
+          void main() {
+            vec4 texColor = texture2D(map, vUv);
+            float glow = sin(time * 2.0) * 0.1 + 0.9;
+            gl_FragColor = texColor * glow * opacity;
+          }
+        `,
+        transparent: true
+      });
+      
+      const labelMesh = new THREE.Mesh(labelGeom, labelMat);
+      const r = 103;
+      const raRad = data.label.ra * DEG2RAD;
+      const decRad = data.label.dec * DEG2RAD;
+      
+      labelMesh.position.set(
+        r * Math.cos(decRad) * Math.cos(raRad),
+        r * Math.sin(decRad),
+        r * Math.cos(decRad) * Math.sin(raRad)
+      );
+      labelMesh.lookAt(0, 0, 0);
+      
+      constellationGroup.add(labelMesh);
+      constellationLabels.push(labelMesh);
+      
+      // Add to sky view with simpler version
+      const skyLabelGeom = new THREE.PlaneGeometry(8, 2);
+      const skyLabelMat = new THREE.MeshBasicMaterial({
+        map: labelTexture,
+        transparent: true,
+        opacity: 0.8
+      });
+      const skyLabel = new THREE.Mesh(skyLabelGeom, skyLabelMat);
+      skyLabel.position.copy(labelMesh.position);
+      skyLabel.lookAt(0, 0, 0);
+      sceneSky.add(skyLabel);
+    }
+  });
+  
+  // ============ Planets ============
+  const planetGroup = new THREE.Group();
+  scene3d.add(planetGroup);
+  
+  const planetMeshes = {};
+  const orbitLines = {};
+  
+  Object.entries(PLANETS).forEach(([name, data]) => {
+    // Planet sphere
+    const planetGeom = new THREE.SphereGeometry(data.size, 32, 32);
+    const planetMat = new THREE.MeshPhongMaterial({ 
+      color: data.color,
+      emissive: data.color,
+      emissiveIntensity: 0.2
+    });
+    const planetMesh = new THREE.Mesh(planetGeom, planetMat);
+    planetMesh.castShadow = true;
+    planetMesh.receiveShadow = true;
+    planetGroup.add(planetMesh);
+    planetMeshes[name] = planetMesh;
+    
+    // Orbit line
+    const orbitPoints = [];
+    for (let angle = 0; angle <= 360; angle += 5) {
+      const rad = angle * DEG2RAD;
+      orbitPoints.push(new THREE.Vector3(
+        data.a * 2 * Math.cos(rad),
+        0,
+        data.a * 2 * Math.sin(rad)
+      ));
+    }
+    const orbitGeom = new THREE.BufferGeometry().setFromPoints(orbitPoints);
+    const orbitMat = new THREE.LineBasicMaterial({ 
+      color: data.color,
+      opacity: 0.2,
+      transparent: true
+    });
+    const orbitLine = new THREE.Line(orbitGeom, orbitMat);
+    planetGroup.add(orbitLine);
+    orbitLines[name] = orbitLine;
+  });
+  
+  // ============ Enhanced Sun with Spectacular Effects ============
+  const sunGroup = new THREE.Group();
+  scene3d.add(sunGroup);
+  
+  // Sun core with shader material
+  const sunGeom = new THREE.SphereGeometry(0.12, 64, 64);
+  const sunMat = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { value: 0 },
+      intensity: { value: 2.0 }
+    },
+    vertexShader: `
+      uniform float time;
+      varying vec3 vPosition;
+      varying vec3 vNormal;
+      void main() {
+        vPosition = position;
+        vNormal = normal;
+        
+        // Surface activity (solar flares simulation)
+        vec3 pos = position;
+        float activity = sin(time * 3.0 + position.x * 10.0) * 0.02 +
+                        sin(time * 2.5 + position.y * 8.0) * 0.015 +
+                        sin(time * 4.0 + position.z * 12.0) * 0.01;
+        pos += normal * activity;
+        
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float time;
+      uniform float intensity;
+      varying vec3 vPosition;
+      varying vec3 vNormal;
+      
+      void main() {
+        // Solar surface texture
+        float surface = sin(vPosition.x * 20.0 + time * 2.0) * 
+                       sin(vPosition.y * 15.0 + time * 1.5) * 
+                       sin(vPosition.z * 18.0 + time * 3.0);
+        
+        // Color temperature variation
+        vec3 hotColor = vec3(1.0, 1.0, 0.8);
+        vec3 coolColor = vec3(1.0, 0.6, 0.2);
+        vec3 sunColor = mix(coolColor, hotColor, surface * 0.5 + 0.5);
+        
+        // Brightness pulsing
+        float pulse = sin(time * 4.0) * 0.2 + 0.8;
+        
+        gl_FragColor = vec4(sunColor * intensity * pulse, 1.0);
+      }
+    `
+  });
+  const sunMesh = new THREE.Mesh(sunGeom, sunMat);
+  sunGroup.add(sunMesh);
+  
+  // Multi-layer corona effect
+  for (let i = 0; i < 4; i++) {
+    const coronaSize = 0.15 + i * 0.05;
+    const coronaGeom = new THREE.SphereGeometry(coronaSize, 32, 32);
+    const coronaMat = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        layer: { value: i },
+        opacity: { value: 0.3 / (i + 1) }
+      },
+      vertexShader: `
+        uniform float time;
+        uniform float layer;
+        void main() {
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform float layer;
+        uniform float opacity;
+        void main() {
+          float pulse = sin(time * (2.0 + layer * 0.5)) * 0.4 + 0.6;
+          vec3 coronaColor = mix(vec3(1.0, 0.8, 0.4), vec3(1.0, 0.4, 0.1), layer / 4.0);
+          gl_FragColor = vec4(coronaColor, opacity * pulse);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.BackSide
+    });
+    const corona = new THREE.Mesh(coronaGeom, coronaMat);
+    sunGroup.add(corona);
+  }
+  
+  // Solar flares as animated sprites
+  for (let i = 0; i < 8; i++) {
+    const flareGeom = new THREE.PlaneGeometry(0.4, 0.1);
+    const flareMat = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        flareIndex: { value: i },
+        opacity: { value: 0.6 }
+      },
+      vertexShader: `
+        uniform float time;
+        uniform float flareIndex;
+        void main() {
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform float flareIndex;
+        uniform float opacity;
+        void main() {
+          float flareActivity = sin(time * 3.0 + flareIndex * 2.0) * 0.5 + 0.5;
+          vec3 flareColor = vec3(1.0, 0.7, 0.3);
+          gl_FragColor = vec4(flareColor, opacity * flareActivity);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending
+    });
+    
+    const flare = new THREE.Mesh(flareGeom, flareMat);
+    const angle = (i / 8) * Math.PI * 2;
+    flare.position.set(Math.cos(angle) * 0.15, Math.sin(angle) * 0.15, 0);
+    flare.rotation.z = angle;
+    sunGroup.add(flare);
+  }
+  
+  // ============ Enhanced Moon with Realistic Phases ============
+  const moonGroup = new THREE.Group();
+  scene3d.add(moonGroup);
+  
+  const moonGeom = new THREE.SphereGeometry(0.06, 64, 64);
+  const moonMat = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { value: 0 },
+      sunDirection: { value: new THREE.Vector3(1, 0, 0) },
+      earthGlow: { value: 0.1 }
+    },
+    vertexShader: `
+      uniform float time;
+      varying vec3 vPosition;
+      varying vec3 vNormal;
+      void main() {
+        vPosition = position;
+        vNormal = normalize(normalMatrix * normal);
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float time;
+      uniform vec3 sunDirection;
+      uniform float earthGlow;
+      varying vec3 vPosition;
+      varying vec3 vNormal;
+      
+      // Lunar surface texture
+      float lunarNoise(vec3 p) {
+        return fract(sin(dot(p, vec3(127.1, 311.7, 543.5))) * 43758.5453);
+      }
+      
+      void main() {
+        vec3 normal = normalize(vNormal);
+        float sunDot = max(0.0, dot(normal, normalize(sunDirection)));
+        
+        // Lunar surface detail
+        float craters = lunarNoise(vPosition * 20.0) * lunarNoise(vPosition * 40.0);
+        vec3 lunarColor = vec3(0.8, 0.8, 0.7) + craters * 0.2;
+        
+        // Sunlit and shadowed areas
+        vec3 litColor = lunarColor * sunDot;
+        vec3 shadowColor = lunarColor * earthGlow; // Earthshine
+        
+        vec3 finalColor = mix(shadowColor, litColor, sunDot);
+        
+        gl_FragColor = vec4(finalColor, 1.0);
+      }
+    `
+  });
+  const moonMesh = new THREE.Mesh(moonGeom, moonMat);
+  moonGroup.add(moonMesh);
+  
+  // Subtle moon glow
+  const moonGlowGeom = new THREE.SphereGeometry(0.08, 32, 32);
+  const moonGlowMat = new THREE.ShaderMaterial({
+    uniforms: {
+      time: { value: 0 },
+      opacity: { value: 0.15 }
+    },
+    vertexShader: `
+      uniform float time;
+      void main() {
+        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+      }
+    `,
+    fragmentShader: `
+      uniform float time;
+      uniform float opacity;
+      void main() {
+        float glow = sin(time * 2.0) * 0.3 + 0.7;
+        gl_FragColor = vec4(0.9, 0.9, 0.8, opacity * glow);
+      }
+    `,
+    transparent: true,
+    blending: THREE.AdditiveBlending,
+    side: THREE.BackSide
+  });
+  const moonGlow = new THREE.Mesh(moonGlowGeom, moonGlowMat);
+  moonGroup.add(moonGlow);
+  
+  // ============ Lens Flare System ============
+  const lensFlareGroup = new THREE.Group();
+  scene3d.add(lensFlareGroup);
+  
+  // Create lens flare elements for the Sun
+  for (let i = 0; i < 6; i++) {
+    const flareGeom = new THREE.RingGeometry(0.1 + i * 0.15, 0.15 + i * 0.15, 16);
+    const flareMat = new THREE.ShaderMaterial({
+      uniforms: {
+        time: { value: 0 },
+        flareIndex: { value: i },
+        intensity: { value: 0.3 / (i + 1) }
+      },
+      vertexShader: `
+        uniform float time;
+        void main() {
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+        }
+      `,
+      fragmentShader: `
+        uniform float time;
+        uniform float flareIndex;
+        uniform float intensity;
+        void main() {
+          float flicker = sin(time * 5.0 + flareIndex * 3.14159) * 0.5 + 0.5;
+          vec3 flareColor = mix(vec3(1.0, 0.8, 0.4), vec3(0.8, 0.4, 1.0), flareIndex / 6.0);
+          gl_FragColor = vec4(flareColor, intensity * flicker);
+        }
+      `,
+      transparent: true,
+      blending: THREE.AdditiveBlending,
+      side: THREE.DoubleSide
+    });
+    
+    const lensFlare = new THREE.Mesh(flareGeom, flareMat);
+    lensFlareGroup.add(lensFlare);
+  }
+  
+  // ============ Celestial Grid ============
+  const gridGroup = new THREE.Group();
+  celestialSphere.add(gridGroup);
+  
+  // RA lines
+  for (let ra = 0; ra < 360; ra += 15) {
+    const points = [];
+    for (let dec = -90; dec <= 90; dec += 5) {
+      const r = 98;
+      const raRad = ra * DEG2RAD;
+      const decRad = dec * DEG2RAD;
+      points.push(new THREE.Vector3(
+        r * Math.cos(decRad) * Math.cos(raRad),
+        r * Math.sin(decRad),
+        r * Math.cos(decRad) * Math.sin(raRad)
+      ));
+    }
+    const lineGeom = new THREE.BufferGeometry().setFromPoints(points);
+    const lineMat = new THREE.LineBasicMaterial({ 
+      color: 0x333366,
+      opacity: 0.2,
+      transparent: true
+    });
+    gridGroup.add(new THREE.Line(lineGeom, lineMat));
+  }
+  
+  // Dec lines
+  for (let dec = -60; dec <= 60; dec += 30) {
+    const points = [];
+    for (let ra = 0; ra <= 360; ra += 5) {
+      const r = 98;
+      const raRad = ra * DEG2RAD;
+      const decRad = dec * DEG2RAD;
+      points.push(new THREE.Vector3(
+        r * Math.cos(decRad) * Math.cos(raRad),
+        r * Math.sin(decRad),
+        r * Math.cos(decRad) * Math.sin(raRad)
+      ));
+    }
+    const lineGeom = new THREE.BufferGeometry().setFromPoints(points);
+    const lineMat = new THREE.LineBasicMaterial({ 
+      color: 0x333366,
+      opacity: 0.2,
+      transparent: true
+    });
+    gridGroup.add(new THREE.Line(lineGeom, lineMat));
+  }
+  
+  // ============ Observer ============
+  const observerGeom = new THREE.ConeGeometry(0.05, 0.15, 8);
+  const observerMat = new THREE.MeshPhongMaterial({ 
+    color: 0xff3333,
+    emissive: 0xff3333,
+    emissiveIntensity: 0.5
+  });
+  const observer = new THREE.Mesh(observerGeom, observerMat);
+  observer.castShadow = true;
+  scene3d.add(observer);
+  
+  // ============ UI Controls ============
+  const $ = id => document.getElementById(id);
+  
+  const latInput = $('lat');
+  const lonInput = $('lon');
+  const altInput = $('alt');
+  const timeInput = $('time');
+  
+  function setCurrentTime() {
+    const now = new Date();
+    const iso = now.toISOString().slice(0, 19);
+    timeInput.value = iso;
+  }
+  
+  $('btnNow').addEventListener('click', setCurrentTime);
+  setCurrentTime();
+  
+  $('btnGeo').addEventListener('click', () => {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        latInput.value = pos.coords.latitude.toFixed(4);
+        lonInput.value = pos.coords.longitude.toFixed(4);
+        altInput.value = Math.round(pos.coords.altitude || 10);
+      });
+    }
+  });
+  
+  let animating = false;
+  let animSpeed = 60;
+  
+  $('btnAnimate').addEventListener('click', () => {
+    animating = true;
+    $('btnAnimate').disabled = true;
+    $('btnPause').disabled = false;
+  });
+  
+  $('btnPause').addEventListener('click', () => {
+    animating = false;
+    $('btnAnimate').disabled = false;
+    $('btnPause').disabled = true;
+  });
+  
+  // View mode handling
+  $('viewMode').addEventListener('change', (e) => {
+    const mode = e.target.value;
+    const app = $('app');
+    
+    // Remove existing view mode classes
+    app.classList.remove('view-mode-split', 'view-mode-globe', 'view-mode-sky');
+    
+    // Add new view mode class
+    app.classList.add(`view-mode-${mode}`);
+    
+    // Trigger resize to adjust canvas dimensions
+    setTimeout(() => {
+      onResize();
+    }, 100);
+  });
+  
+  // ============ Graphs ============
+  function drawSolarAltitudeGraph() {
+    const canvas = $('graphSolar');
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width = canvas.offsetWidth * 2;
+    const height = canvas.height = canvas.offsetHeight * 2;
+    
+    ctx.clearRect(0, 0, width, height);
+    ctx.strokeStyle = '#667eea';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    
+    const lat = parseFloat(latInput.value) || 0;
+    const lon = parseFloat(lonInput.value) || 0;
+    const date = new Date(timeInput.value + 'Z');
+    
+    for (let hour = 0; hour <= 24; hour += 0.5) {
+      const testDate = new Date(date);
+      testDate.setUTCHours(testDate.getUTCHours() + hour);
+      const jd = toJulianDay(testDate);
+      const sun = solarPosition(jd);
+      const lst = localSiderealTime(jd, lon);
+      const altAz = raDecToAltAz(sun.ra, sun.dec, lat, lon, lst);
+      
+      const x = (hour / 24) * width;
+      const y = height - ((altAz.altitude + 90) / 180) * height;
+      
+      if (hour === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    
+    ctx.stroke();
+    
+    // Horizon line
+    ctx.strokeStyle = '#ff6666';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(0, height/2);
+    ctx.lineTo(width, height/2);
+    ctx.stroke();
+  }
+  
+  function drawAnalemma() {
+    const canvas = $('graphAnalemma');
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width = canvas.offsetWidth * 2;
+    const height = canvas.height = canvas.offsetHeight * 2;
+    
+    ctx.clearRect(0, 0, width, height);
+    ctx.strokeStyle = '#f093fb';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    
+    for (let day = 0; day < 365; day += 5) {
+      const date = new Date(Date.UTC(2024, 0, 1, 12, 0, 0));
+      date.setUTCDate(date.getUTCDate() + day);
+      const jd = toJulianDay(date);
+      const sun = solarPosition(jd);
+      
+      const x = width/2 + (sun.dec / 30) * width;
+      const y = height/2 - ((sun.ra - 180) / 60) * height;
+      
+      if (day === 0) ctx.moveTo(x, y);
+      else ctx.lineTo(x, y);
+    }
+    
+    ctx.closePath();
+    ctx.stroke();
+  }
+  
+  function drawPlanetPositions() {
+    const canvas = $('graphPlanets');
+    const ctx = canvas.getContext('2d');
+    const width = canvas.width = canvas.offsetWidth * 2;
+    const height = canvas.height = canvas.offsetHeight * 2;
+    
+    ctx.clearRect(0, 0, width, height);
+    
+    const date = new Date(timeInput.value + 'Z');
+    const jd = toJulianDay(date);
+    
+    let i = 0;
+    Object.entries(PLANETS).forEach(([name, data]) => {
+      const pos = planetPosition(name, jd);
+      const x = (pos.ra / 360) * width;
+      const y = height/2 - (pos.dec / 90) * height/2;
+      
+      ctx.fillStyle = `#${data.color.toString(16).padStart(6, '0')}`;
+      ctx.beginPath();
+      ctx.arc(x, y, 4, 0, TAU);
+      ctx.fill();
+      
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '12px monospace';
+      ctx.fillText(data.symbol, x + 6, y + 4);
+      i++;
+    });
+  }
+  
+  // ============ Update Function ============
+  function update() {
+    const lat = parseFloat(latInput.value) || 0;
+    const lon = parseFloat(lonInput.value) || 0;
+    const alt = parseFloat(altInput.value) || 0;
+    
+    const dateStr = timeInput.value;
+    const date = dateStr ? new Date(dateStr + 'Z') : new Date();
+    const jd = toJulianDay(date);
+    
+    // Time displays
+    const gmst = greenwichMeanSiderealTime(jd);
+    const lst = localSiderealTime(jd, lon);
+    
+    $('jd').textContent = jd.toFixed(2);
+    $('gmst').textContent = (gmst / 15).toFixed(2) + 'h';
+    $('lst').textContent = (lst / 15).toFixed(2) + 'h';
+    
+    // Solar position
+    const sun = solarPosition(jd);
+    const sunAltAz = raDecToAltAz(sun.ra, sun.dec, lat, lon, lst);
+    $('sunPos').textContent = `${sunAltAz.azimuth.toFixed(0)}°/${sunAltAz.altitude.toFixed(0)}°`;
+    
+    // Lunar position
+    const moon = lunarPosition(jd);
+    const moonAltAz = raDecToAltAz(moon.ra, moon.dec, lat, lon, lst);
+    $('moonPos').textContent = `${moonAltAz.azimuth.toFixed(0)}°/${moonAltAz.altitude.toFixed(0)}°`;
+    
+    // Update planets
+    let planetHTML = '';
+    Object.entries(PLANETS).forEach(([name, data]) => {
+      const pos = planetPosition(name, jd);
+      const altAz = raDecToAltAz(pos.ra, pos.dec, lat, lon, lst);
+      planetHTML += `<div>${data.symbol} ${name}: Az ${altAz.azimuth.toFixed(0)}° Alt ${altAz.altitude.toFixed(0)}°</div>`;
+      
+      // Update 3D position
+      if (planetMeshes[name]) {
+        const r = 2 + data.a * 0.3;
+        const angle = (jd - J2000) * 360 / (data.a ** 1.5 * 365.25);
+        planetMeshes[name].position.set(
+          r * Math.cos(angle * DEG2RAD),
+          0,
+          r * Math.sin(angle * DEG2RAD)
+        );
+      }
+    });
+    $('planetList').innerHTML = planetHTML;
+    
+    // Update navigation stars
+    let starHTML = '';
+    const visibleStars = FAMOUS_STARS
+      .filter(star => star.category === 'navigation' || star.category === 'famous')
+      .slice(0, 8);
+    
+    visibleStars.forEach(star => {
+      const altAz = raDecToAltAz(star.ra, star.dec, lat, lon, lst);
+      if (altAz.altitude > 5) { // Only show stars above 5° altitude
+        const brightness = star.mag < 1 ? '⭐' : star.mag < 2 ? '✦' : '✧';
+        starHTML += `<div>${brightness} ${star.name} (${star.constellation}): Az ${altAz.azimuth.toFixed(0)}° Alt ${altAz.altitude.toFixed(0)}°</div>`;
+      }
+    });
+    $('navStars').innerHTML = starHTML || '<div style="opacity:0.5">No prominent stars visible</div>';
+    
+    // Update 3D scene
+    earth.rotation.y = (gmst - 90) * DEG2RAD;
+    atmosphere.rotation.y = earth.rotation.y;
+    celestialSphere.rotation.y = -lst * DEG2RAD;
+    
+    // Position observer
+    const obsLat = lat * DEG2RAD;
+    const obsLon = lon * DEG2RAD;
+    observer.position.set(
+      Math.cos(obsLat) * Math.cos(obsLon) * 1.05,
+      Math.sin(obsLat) * 1.05,
+      Math.cos(obsLat) * Math.sin(obsLon) * 1.05
+    );
+    observer.lookAt(0, 0, 0);
+    
+    // Position Enhanced Sun
+    const sunDist = 20;
+    const sunPos = new THREE.Vector3(
+      sunDist * Math.cos(sun.dec * DEG2RAD) * Math.cos(sun.ra * DEG2RAD),
+      sunDist * Math.sin(sun.dec * DEG2RAD),
+      sunDist * Math.cos(sun.dec * DEG2RAD) * Math.sin(sun.ra * DEG2RAD)
+    );
+    sunGroup.position.copy(sunPos);
+    sunLight.position.copy(sunPos);
+    
+    // Update sun effects
+    sunGroup.children.forEach(child => {
+      if (child.material && child.material.uniforms && child.material.uniforms.time) {
+        child.material.uniforms.time.value = time;
+      }
+    });
+    
+    // Position lens flares relative to sun
+    lensFlareGroup.position.copy(sunPos);
+    lensFlareGroup.children.forEach((flare, i) => {
+      flare.position.set(
+        (i - 3) * 0.5,
+        Math.sin(time + i) * 0.3,
+        0
+      );
+      if (flare.material.uniforms && flare.material.uniforms.time) {
+        flare.material.uniforms.time.value = time;
+      }
+    });
+    
+    // Update Earth texture with day/night terminator
+    const sunLon = sun.ra - gmst;
+    earthTexture = createEarthTexture(sunLon);
+    earth.material.map = earthTexture;
+    earth.material.needsUpdate = true;
+    
+    // Position Enhanced Moon
+    const moonDist = 15;
+    const moonPos = new THREE.Vector3(
+      moonDist * Math.cos(moon.dec * DEG2RAD) * Math.cos(moon.ra * DEG2RAD),
+      moonDist * Math.sin(moon.dec * DEG2RAD),
+      moonDist * Math.cos(moon.dec * DEG2RAD) * Math.sin(moon.ra * DEG2RAD)
+    );
+    moonGroup.position.copy(moonPos);
+    moonLight.position.copy(moonPos);
+    
+    // Update moon effects and phase
+    const sunToMoon = sunPos.clone().sub(moonPos).normalize();
+    moonGroup.children.forEach(child => {
+      if (child.material && child.material.uniforms) {
+        if (child.material.uniforms.time) child.material.uniforms.time.value = time;
+        if (child.material.uniforms.sunDirection) child.material.uniforms.sunDirection.value = sunToMoon;
+      }
+    });
+    
+    // Update sky view rotation
+    sceneSky.rotation.y = -lst * DEG2RAD;
+    sceneSky.rotation.x = -lat * DEG2RAD;
+    
+    // Update atmospheric effects
+    const time = Date.now() * 0.001;
+    atmosphereMaterial.uniforms.time.value = time;
+    
+    // Update sun direction for atmosphere
+    const sunDir = sunMesh.position.clone().normalize();
+    atmosphereMaterial.uniforms.sunDirection.value = sunDir;
+    
+    // Update star scintillation
+    famousStarMeshes.forEach(starMesh => {
+      if (starMesh.material.uniforms) {
+        starMesh.material.uniforms.time.value = time;
+        
+        // Update diffraction spikes
+        starMesh.children.forEach(child => {
+          if (child.material && child.material.uniforms && child.material.uniforms.time) {
+            child.material.uniforms.time.value = time;
+          }
+        });
+      }
+    });
+    
+    // Toggle visibility
+    starsPoints.visible = $('showStars').checked;
+    constellationGroup.visible = $('showConst').checked;
+    planetGroup.visible = $('showPlanets').checked;
+    gridGroup.visible = $('showGrid').checked;
+    
+    // Update cosmic background effects
+    cosmicGroup.children.forEach(child => {
+      if (child.material && child.material.uniforms && child.material.uniforms.time) {
+        child.material.uniforms.time.value = time;
+      }
+    });
+    
+    // Update constellation effects
+    constellationGroup.children.forEach(child => {
+      if (child.material && child.material.uniforms) {
+        if (child.material.uniforms.time) {
+          child.material.uniforms.time.value = time;
+        }
+      }
+    });
+    
+    // Show/hide constellation labels  
+    constellationLabels.forEach(label => {
+      label.visible = $('showLabels').checked && $('showConst').checked;
+      if (label.material && label.material.uniforms && label.material.uniforms.time) {
+        label.material.uniforms.time.value = time;
+      }
+    });
+    
+    Object.values(orbitLines).forEach(line => {
+      line.visible = $('showOrbits').checked;
+    });
+    
+    // Update graphs
+    drawSolarAltitudeGraph();
+    drawAnalemma();
+    drawPlanetPositions();
+    
+    // Animate time
+    if (animating) {
+      const newDate = new Date(date.getTime() + animSpeed * 1000);
+      timeInput.value = newDate.toISOString().slice(0, 19);
+    }
+  }
+  
+  // ============ Render Loop ============
+  function animate() {
+    requestAnimationFrame(animate);
+    
+    update();
+    controls3d.update();
+    controlsSky.update();
+    
+    renderer3d.render(scene3d, camera3d);
+    rendererSky.render(sceneSky, cameraSky);
+  }
+  
+  // ============ Window Resize ============
+  function onResize() {
+    const width3d = canvas3d.clientWidth;
+    const height3d = canvas3d.clientHeight;
+    
+    camera3d.aspect = width3d / height3d;
+    camera3d.updateProjectionMatrix();
+    renderer3d.setSize(width3d, height3d);
+    
+    const widthSky = canvasSky.clientWidth;
+    const heightSky = canvasSky.clientHeight;
+    
+    cameraSky.aspect = widthSky / heightSky;
+    cameraSky.updateProjectionMatrix();
+    rendererSky.setSize(widthSky, heightSky);
+  }
+  
+  window.addEventListener('resize', onResize);
+  onResize();
+  
+  // Add legends
+  const legend3d = document.createElement('div');
+  legend3d.id = 'legend';
+  legend3d.innerHTML = `
+    <strong>3D Celestial Globe</strong><br>
+    🌍 Earth with day/night cycle<br>
+    ⭐ Famous stars & 30+ constellations<br>
+    🌌 Milky Way representation<br>
+    🪐 All planets with orbits<br>
+    ☀️ Sun & 🌙 Moon positions<br>
+    📍 Observer location marker
+  `;
+  canvas3d.appendChild(legend3d);
+  
+  const legendSky = document.createElement('div');
+  legendSky.id = 'legend';
+  legendSky.innerHTML = `
+    <strong>Observer's Sky View</strong><br>
+    View from your location<br>
+    Shows visible famous stars<br>
+    Constellation patterns & labels<br>
+    🌌 Milky Way band<br>
+    <em>Drag to look around the sky</em>
+  `;
+  canvasSky.appendChild(legendSky);
+  
+  // Initialize view mode
+  $('app').classList.add('view-mode-split');
+  
+  // Start
+  setTimeout(() => {
+    $('loading').style.display = 'none';
+    $('app').style.display = 'grid';
+    animate();
+  }, 1000);
+  
+})();
+</script>
+</body>
+</html>
