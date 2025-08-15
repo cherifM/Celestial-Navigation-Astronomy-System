@@ -433,8 +433,17 @@
       z-index: 1;
     }
     
-    #canvas3d {
+    #canvas3d, #canvasSky {
+      position: relative;
+      width: 100%;
+      height: 100%;
       border-bottom: 1px solid rgba(100,120,255,0.2);
+    }
+    
+    #canvas3d canvas, #canvasSky canvas {
+      width: 100% !important;
+      height: 100% !important;
+      display: block;
     }
     
     #controls {
@@ -1469,8 +1478,36 @@
   
   // 3D Globe Scene
   const scene3d = new THREE.Scene();
+  console.log('3D Scene created successfully');
+  
   const camera3d = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
   camera3d.position.set(0, 3, 6);
+  console.log('3D Camera created and positioned at:', camera3d.position);
+  
+  // ============ INITIALIZATION PROGRESS TRACKING ============
+  const progressSteps = [
+    'WebGL Check', 'Renderers', 'Basic Scene', 'Earth', 'Stars', 'Constellations', 
+    'Planets', 'Controls', 'UI Setup', 'Complete'
+  ];
+  let currentStep = 0;
+  
+  function updateProgress(stepName) {
+    currentStep++;
+    console.log(`✓ ${stepName} (${currentStep}/${progressSteps.length})`);
+    if ($('loading')) {
+      $('loading').innerHTML = `Initializing Universe...<br><small>${stepName} (${currentStep}/${progressSteps.length})</small>`;
+    }
+  }
+  
+  function handleInitError(step, error) {
+    console.error(`❌ Failed at ${step}:`, error);
+    if ($('loading')) {
+      $('loading').innerHTML = `❌ Error loading ${step}<br><small>Check console for details</small>`;
+      $('loading').style.color = '#ff6b6b';
+    }
+  }
+  
+  updateProgress('WebGL Check');
   
   // ============ PERFORMANCE-OPTIMIZED RENDERERS ============
   
@@ -1481,42 +1518,81 @@
     maxPixelRatio: Math.min(window.devicePixelRatio, 2)
   };
   
-  // Adaptive renderer settings for optimal performance
-  const renderer3d = new THREE.WebGLRenderer({ 
-    antialias: !deviceCapabilities.isLowEnd, 
-    alpha: true,
-    powerPreference: "high-performance",
-    stencil: false // Disable stencil buffer for better performance
-  });
+  try {
+    // Check WebGL support first
+    const canvas = document.createElement('canvas');
+    const gl = canvas.getContext('webgl') || canvas.getContext('experimental-webgl');
+    if (!gl) {
+      throw new Error('WebGL is not supported in this browser');
+    }
+    console.log('WebGL support confirmed');
+    updateProgress('Renderers');
+
+    // Simplified renderer settings for stability
+    const renderer3d = new THREE.WebGLRenderer({ 
+      antialias: true, 
+      alpha: true
+    });
+    
+    console.log('3D Renderer created successfully');
+    
+    renderer3d.setPixelRatio(window.devicePixelRatio);
+    
+    // Basic shadow settings
+    renderer3d.shadowMap.enabled = true;
+    renderer3d.shadowMap.type = THREE.PCFShadowMap;
+    
+    canvas3d.appendChild(renderer3d.domElement);
+    
+    // Set size after adding to DOM
+    setTimeout(() => {
+      const rect = canvas3d.getBoundingClientRect();
+      renderer3d.setSize(rect.width || 800, rect.height || 600);
+      console.log('3D Renderer configured, canvas size:', rect.width || 800, 'x', rect.height || 600);
+    }, 100);
+  } catch (error) {
+    handleInitError('WebGL/Renderer Setup', error);
+    return;
+  }
   
-  renderer3d.setPixelRatio(deviceCapabilities.isMobile ? 1 : deviceCapabilities.maxPixelRatio);
-  
-  // Performance-optimized shadow settings
-  renderer3d.shadowMap.enabled = !deviceCapabilities.isLowEnd;
-  renderer3d.shadowMap.type = deviceCapabilities.isLowEnd ? THREE.BasicShadowMap : THREE.PCFSoftShadowMap;
-  renderer3d.shadowMap.autoUpdate = false; // Manual shadow updates for better performance
-  
-  // WebGL performance optimizations
-  renderer3d.capabilities.logarithmicDepthBuffer = true;
-  renderer3d.sortObjects = true;
-  renderer3d.autoClear = false; // Manual clearing for better control
-  
-  canvas3d.appendChild(renderer3d.domElement);
-  
-  // Sky View Scene (Observer's perspective)
-  const sceneSky = new THREE.Scene();
-  const cameraSky = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
-  cameraSky.position.set(0, 0, 0);
-  
-  // Optimized sky renderer (simpler than 3D view)
-  const rendererSky = new THREE.WebGLRenderer({ 
-    antialias: deviceCapabilities.isMobile ? false : true,
-    alpha: true,
-    powerPreference: "default"
-  });
-  rendererSky.setPixelRatio(deviceCapabilities.isMobile ? 1 : 1.5);
-  rendererSky.sortObjects = true;
-  canvasSky.appendChild(rendererSky.domElement);
+  try {
+    // Sky View Scene (Observer's perspective)
+    const sceneSky = new THREE.Scene();
+    const cameraSky = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
+    cameraSky.position.set(0, 0, 0);
+    
+    // Simplified sky renderer
+    const rendererSky = new THREE.WebGLRenderer({ 
+      antialias: true,
+      alpha: true
+    });
+    console.log('Sky Renderer created successfully');
+    
+    rendererSky.setPixelRatio(window.devicePixelRatio);
+    canvasSky.appendChild(rendererSky.domElement);
+    
+    // Set size after adding to DOM
+    setTimeout(() => {
+      const rect = canvasSky.getBoundingClientRect();
+      rendererSky.setSize(rect.width || 800, rect.height || 600);
+      console.log('Sky Renderer configured, canvas size:', rect.width || 800, 'x', rect.height || 600);
+    }, 100);
+    
+    console.log('Sky Renderer configured and added to DOM');
+    updateProgress('Basic Scene');
+    
+    // Add a simple test object to ensure rendering works
+    const testGeometry = new THREE.BoxGeometry(1, 1, 1);
+    const testMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+    const testCube = new THREE.Mesh(testGeometry, testMaterial);
+    testCube.position.set(0, 0, 0);
+    scene3d.add(testCube);
+    console.log('Test cube added to 3D scene');
+    
+  } catch (error) {
+    handleInitError('Sky Renderer Setup', error);
+    return;
+  }
   
   // ============ LEVEL OF DETAIL (LOD) SYSTEM ============
   
@@ -1659,21 +1735,115 @@
     }
   }
   
-  const controls3d = new OrbitControls(camera3d, renderer3d.domElement);
-  const controlsSky = new OrbitControls(cameraSky, rendererSky.domElement);
-  controlsSky.spherical.radius = 0.1;
+  // Controls will be created after basic scene setup
+  let controls3d, controlsSky;
   
-  // ============ PROFESSIONAL ASTRONOMICAL LIGHTING SYSTEM ============
+  // ============ PROGRESSIVE SCENE LOADING ============
   
-  // === AMBIENT ASTRONOMICAL LIGHTING ===
+  // Basic lighting setup
+  try {
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+    scene3d.add(ambientLight);
+    
+    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
+    directionalLight.position.set(1, 1, 1);
+    scene3d.add(directionalLight);
+    
+    console.log('Basic lighting added');
+    updateProgress('Controls');
+    
+    // Create controls now that renderers are ready
+    controls3d = new OrbitControls(camera3d, renderer3d.domElement);
+    controlsSky = new OrbitControls(cameraSky, rendererSky.domElement);
+    controlsSky.spherical.radius = 0.1;
+    
+    console.log('Controls created successfully');
+    updateProgress('UI Setup');
+    
+  } catch (error) {
+    handleInitError('Basic Lighting/Controls', error);
+    return;
+  }
   
-  // Deep space ambient (very subtle cosmic microwave background)
-  const cosmicAmbient = new THREE.AmbientLight(0x050a15, 0.02);
-  scene3d.add(cosmicAmbient);
+  // ============ ASYNC SCENE LOADING FUNCTIONS ============
   
-  // Zodiacal light ambient (scattered sunlight in solar system)
-  const zodiacalAmbient = new THREE.AmbientLight(0x1a1622, 0.05);
-  scene3d.add(zodiacalAmbient);
+  async function loadBasicEarth() {
+    try {
+      updateProgress('Earth');
+      await new Promise(resolve => setTimeout(resolve, 50)); // Allow UI update
+      
+      // Simple Earth
+      const earthGeom = new THREE.SphereGeometry(1, 32, 32);
+      const earthMat = new THREE.MeshPhongMaterial({ 
+        color: 0x2233aa,
+        shininess: 100
+      });
+      const earth = new THREE.Mesh(earthGeom, earthMat);
+      scene3d.add(earth);
+      
+      console.log('Basic Earth added');
+      return earth;
+    } catch (error) {
+      console.error('Error loading Earth:', error);
+      throw error;
+    }
+  }
+  
+  async function loadBasicStars() {
+    try {
+      updateProgress('Stars');
+      await new Promise(resolve => setTimeout(resolve, 50)); // Allow UI update
+      
+      // Simple star field
+      const starGeometry = new THREE.BufferGeometry();
+      const starPositions = [];
+      
+      for (let i = 0; i < 100; i++) {
+        const radius = 50;
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.random() * Math.PI;
+        
+        starPositions.push(
+          radius * Math.sin(phi) * Math.cos(theta),
+          radius * Math.cos(phi),
+          radius * Math.sin(phi) * Math.sin(theta)
+        );
+      }
+      
+      starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
+      const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 2 });
+      const stars = new THREE.Points(starGeometry, starMaterial);
+      scene3d.add(stars);
+      
+      console.log('Basic stars added');
+      return stars;
+    } catch (error) {
+      console.error('Error loading stars:', error);
+      throw error;
+    }
+  }
+  
+  // Initialize the basic app immediately
+  async function initializeBasicApp() {
+    try {
+      const earth = await loadBasicEarth();
+      const stars = await loadBasicStars();
+      
+      updateProgress('Complete');
+      
+      console.log('✅ Basic app initialized successfully');
+      return { earth, stars };
+    } catch (error) {
+      handleInitError('Basic App Initialization', error);
+      throw error;
+    }
+  }
+  
+  /* 
+  // === COMPLEX SCENE CREATION TEMPORARILY DISABLED ===
+  // The original complex Earth, star fields, constellations, planets, etc.
+  // have been temporarily commented out to allow basic functionality first.
+  // They will be progressively loaded after basic app works.
   
   // === REALISTIC SUN LIGHTING ===
   
@@ -2174,78 +2344,25 @@
   earth.castShadow = true;
   scene3d.add(earth);
   
-  // Enhanced Multi-layer Atmosphere
-  const atmosphereGeometry = new THREE.SphereGeometry(1.02, 128, 128);
-  const atmosphereMaterial = new THREE.ShaderMaterial({
-    uniforms: {
-      sunDirection: { value: new THREE.Vector3(0, 0, 1) },
-      time: { value: 0 }
-    },
-    vertexShader: `
-      varying vec3 vNormal;
-      varying vec3 vPosition;
-      void main() {
-        vNormal = normalize(normalMatrix * normal);
-        vPosition = position;
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform vec3 sunDirection;
-      uniform float time;
-      varying vec3 vNormal;
-      varying vec3 vPosition;
-      
-      void main() {
-        vec3 normal = normalize(vNormal);
-        float sunFacing = max(0.0, dot(normal, sunDirection));
-        float rimLight = pow(0.9 - dot(normal, vec3(0, 0, 1.0)), 1.5);
-        
-        // Atmospheric scattering colors
-        vec3 dayColor = vec3(0.4, 0.7, 1.0);
-        vec3 sunsetColor = vec3(1.0, 0.5, 0.2);
-        vec3 nightColor = vec3(0.1, 0.2, 0.5);
-        
-        // Blend colors based on sun angle
-        vec3 atmosphereColor = mix(nightColor, dayColor, sunFacing);
-        atmosphereColor = mix(atmosphereColor, sunsetColor, 
-                            smoothstep(0.0, 0.3, sunFacing) * smoothstep(0.7, 0.3, sunFacing));
-        
-        // Aurora-like effect at poles
-        float polarEffect = abs(vPosition.y) > 0.8 ? 
-                           sin(time * 2.0 + vPosition.x * 5.0) * 0.3 + 0.7 : 1.0;
-        
-        float opacity = rimLight * (0.3 + 0.4 * sunFacing) * polarEffect;
-        gl_FragColor = vec4(atmosphereColor, opacity);
-      }
-    `,
-    blending: THREE.AdditiveBlending,
-    side: THREE.BackSide,
-    transparent: true
+  // Simplified Atmosphere
+  const atmosphereGeometry = new THREE.SphereGeometry(1.02, 64, 64);
+  const atmosphereMaterial = new THREE.MeshBasicMaterial({
+    color: 0x4466ff,
+    transparent: true,
+    opacity: 0.15,
+    side: THREE.BackSide
   });
   const atmosphere = new THREE.Mesh(atmosphereGeometry, atmosphereMaterial);
   scene3d.add(atmosphere);
   
-  // Outer atmospheric glow
+  // Simplified outer atmospheric glow
   const outerAtmosphereGeometry = new THREE.SphereGeometry(1.05, 64, 64);
-  const outerAtmosphereMaterial = new THREE.ShaderMaterial({
-    vertexShader: `
-      varying vec3 vNormal;
-      void main() {
-        vNormal = normalize(normalMatrix * normal);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      varying vec3 vNormal;
-      void main() {
-        float intensity = pow(0.5 - dot(vNormal, vec3(0, 0, 1.0)), 3.0);
-        gl_FragColor = vec4(0.2, 0.4, 0.8, 1.0) * intensity;
-      }
-    `,
+  const outerAtmosphereMaterial = new THREE.MeshBasicMaterial({
+    color: 0x3366cc,
+    transparent: true,
+    opacity: 0.1,
     blending: THREE.AdditiveBlending,
-    side: THREE.BackSide,
-    transparent: true
+    side: THREE.BackSide
   });
   const outerAtmosphere = new THREE.Mesh(outerAtmosphereGeometry, outerAtmosphereMaterial);
   scene3d.add(outerAtmosphere);
@@ -2781,116 +2898,21 @@
   zodiacalLight.rotation.x = -Math.PI / 2;
   cosmicGroup.add(zodiacalLight);
   
-  // Old nebulae code removed - replaced with enhanced system above
+  // Nebulae now handled by simplified system above
   
-  // Nebulae rendering moved to enhanced system above with multi-layer effects
-    
-    const nebulaGeometry = new THREE.SphereGeometry(nebula.size, 32, 32);
-    const nebulaMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-        nebulaColor: { value: new THREE.Vector3(...nebula.color) },
-        intensity: { value: 0.3 }
-      },
-      vertexShader: `
-        uniform float time;
-        varying vec3 vPosition;
-        varying vec3 vNormal;
-        void main() {
-          vPosition = position;
-          vNormal = normal;
-          
-          // Add slight movement to simulate gas flow
-          vec3 pos = position;
-          pos += sin(time * 0.3 + position.x * 0.5) * normal * 0.1;
-          
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float time;
-        uniform vec3 nebulaColor;
-        uniform float intensity;
-        varying vec3 vPosition;
-        varying vec3 vNormal;
-        
-        // Fractal noise for realistic nebula texture
-        float noise(vec3 p) {
-          return fract(sin(dot(p, vec3(127.1, 311.7, 543.5))) * 43758.5453);
-        }
-        
-        float fractalNoise(vec3 p) {
-          float f = 0.0;
-          f += 0.5000 * noise(p); p *= 2.0;
-          f += 0.2500 * noise(p); p *= 2.0;
-          f += 0.1250 * noise(p); p *= 2.0;
-          f += 0.0625 * noise(p);
-          return f;
-        }
-        
-        void main() {
-          vec3 pos = vPosition;
-          
-          // Create wispy nebula structure
-          float density = fractalNoise(pos * 0.5 + time * 0.1);
-          density *= fractalNoise(pos * 0.8 - time * 0.05);
-          
-          // Add distance falloff
-          float dist = length(pos);
-          float falloff = 1.0 - smoothstep(0.0, 2.0, dist);
-          
-          // Color variations within the nebula
-          vec3 color1 = nebulaColor;
-          vec3 color2 = nebulaColor * vec3(0.5, 1.2, 0.8);
-          vec3 finalColor = mix(color1, color2, sin(time * 0.5 + pos.x) * 0.5 + 0.5);
-          
-          // Brightness pulsing
-          float pulse = sin(time * 2.0 + pos.y) * 0.3 + 0.7;
-          
-          float alpha = density * falloff * intensity * pulse;
-          gl_FragColor = vec4(finalColor, alpha);
-        }
-      `,
-      transparent: true,
-      blending: THREE.AdditiveBlending,
-      side: THREE.DoubleSide
-    });
-    
-    const nebulaMesh = new THREE.Mesh(nebulaGeometry, nebulaMaterial);
-    nebulaMesh.position.copy(pos);
-    cosmicGroup.add(nebulaMesh);
-  });
-  
-  // Add cosmic dust clouds and star-forming regions
+  // Add simplified cosmic dust clouds
   for (let i = 0; i < 40; i++) {
     const cloudSize = Math.random() * 3 + 1;
     const cloudGeometry = new THREE.SphereGeometry(cloudSize, 16, 16);
-    const cloudMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-        cloudColor: { 
-          value: new THREE.Vector3(
-            0.2 + Math.random() * 0.6,
-            0.2 + Math.random() * 0.4,
-            0.4 + Math.random() * 0.6
-          )
-        }
-      },
-      vertexShader: `
-        uniform float time;
-        void main() {
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float time;
-        uniform vec3 cloudColor;
-        void main() {
-          float pulse = sin(time * 0.8) * 0.4 + 0.6;
-          gl_FragColor = vec4(cloudColor, 0.03 * pulse);
-        }
-      `,
+    const cloudColor = new THREE.Color(
+      0.2 + Math.random() * 0.6,
+      0.2 + Math.random() * 0.4,
+      0.4 + Math.random() * 0.6
+    );
+    const cloudMaterial = new THREE.MeshBasicMaterial({
+      color: cloudColor,
       transparent: true,
+      opacity: 0.03,
       blending: THREE.AdditiveBlending
     });
     
@@ -2908,36 +2930,15 @@
     cosmicGroup.add(cloud);
   }
   
-  // Add distant galaxy representations
+  // Add simplified distant galaxy representations
   for (let i = 0; i < 8; i++) {
     const galaxyGeometry = new THREE.PlaneGeometry(6, 2);
-    const galaxyMaterial = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-        galaxyType: { value: Math.random() }
-      },
-      vertexShader: `
-        uniform float time;
-        void main() {
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float time;
-        uniform float galaxyType;
-        void main() {
-          vec2 uv = gl_FragCoord.xy;
-          
-          // Different galaxy types
-          vec3 color = galaxyType < 0.5 ? 
-            vec3(0.9, 0.8, 0.6) : // Elliptical - yellowish
-            vec3(0.6, 0.7, 0.9);   // Spiral - bluish
-          
-          float brightness = sin(time * 1.5) * 0.2 + 0.3;
-          gl_FragColor = vec4(color, 0.15 * brightness);
-        }
-      `,
+    const galaxyType = Math.random();
+    const galaxyColor = galaxyType < 0.5 ? 0xe6cc99 : 0x99b3e6; // Elliptical vs Spiral
+    const galaxyMaterial = new THREE.MeshBasicMaterial({
+      color: galaxyColor,
       transparent: true,
+      opacity: 0.15,
       blending: THREE.AdditiveBlending
     });
     
@@ -3214,86 +3215,25 @@
   const sunGroup = new THREE.Group();
   scene3d.add(sunGroup);
   
-  // Sun core with shader material
+  // Simplified Sun
   const sunGeom = new THREE.SphereGeometry(0.12, 64, 64);
-  const sunMat = new THREE.ShaderMaterial({
-    uniforms: {
-      time: { value: 0 },
-      intensity: { value: 2.0 }
-    },
-    vertexShader: `
-      uniform float time;
-      varying vec3 vPosition;
-      varying vec3 vNormal;
-      void main() {
-        vPosition = position;
-        vNormal = normal;
-        
-        // Surface activity (solar flares simulation)
-        vec3 pos = position;
-        float activity = sin(time * 3.0 + position.x * 10.0) * 0.02 +
-                        sin(time * 2.5 + position.y * 8.0) * 0.015 +
-                        sin(time * 4.0 + position.z * 12.0) * 0.01;
-        pos += normal * activity;
-        
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(pos, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform float time;
-      uniform float intensity;
-      varying vec3 vPosition;
-      varying vec3 vNormal;
-      
-      void main() {
-        // Solar surface texture
-        float surface = sin(vPosition.x * 20.0 + time * 2.0) * 
-                       sin(vPosition.y * 15.0 + time * 1.5) * 
-                       sin(vPosition.z * 18.0 + time * 3.0);
-        
-        // Color temperature variation
-        vec3 hotColor = vec3(1.0, 1.0, 0.8);
-        vec3 coolColor = vec3(1.0, 0.6, 0.2);
-        vec3 sunColor = mix(coolColor, hotColor, surface * 0.5 + 0.5);
-        
-        // Brightness pulsing
-        float pulse = sin(time * 4.0) * 0.2 + 0.8;
-        
-        gl_FragColor = vec4(sunColor * intensity * pulse, 1.0);
-      }
-    `
+  const sunMat = new THREE.MeshBasicMaterial({
+    color: 0xffff00,
+    emissive: 0xffff00,
+    emissiveIntensity: 1
   });
   const sunMesh = new THREE.Mesh(sunGeom, sunMat);
   sunGroup.add(sunMesh);
   
-  // Multi-layer corona effect
+  // Simplified corona effect
   for (let i = 0; i < 4; i++) {
     const coronaSize = 0.15 + i * 0.05;
     const coronaGeom = new THREE.SphereGeometry(coronaSize, 32, 32);
-    const coronaMat = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-        layer: { value: i },
-        opacity: { value: 0.3 / (i + 1) }
-      },
-      vertexShader: `
-        uniform float time;
-        uniform float layer;
-        void main() {
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float time;
-        uniform float layer;
-        uniform float opacity;
-        void main() {
-          float pulse = sin(time * (2.0 + layer * 0.5)) * 0.4 + 0.6;
-          vec3 coronaColor = mix(vec3(1.0, 0.8, 0.4), vec3(1.0, 0.4, 0.1), layer / 4.0);
-          gl_FragColor = vec4(coronaColor, opacity * pulse);
-        }
-      `,
+    const coronaColor = i < 2 ? 0xffcc66 : 0xff6633;
+    const coronaMat = new THREE.MeshBasicMaterial({
+      color: coronaColor,
       transparent: true,
+      opacity: 0.3 / (i + 1),
       blending: THREE.AdditiveBlending,
       side: THREE.BackSide
     });
@@ -3301,33 +3241,13 @@
     sunGroup.add(corona);
   }
   
-  // Solar flares as animated sprites
+  // Simplified solar flares
   for (let i = 0; i < 8; i++) {
     const flareGeom = new THREE.PlaneGeometry(0.4, 0.1);
-    const flareMat = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-        flareIndex: { value: i },
-        opacity: { value: 0.6 }
-      },
-      vertexShader: `
-        uniform float time;
-        uniform float flareIndex;
-        void main() {
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float time;
-        uniform float flareIndex;
-        uniform float opacity;
-        void main() {
-          float flareActivity = sin(time * 3.0 + flareIndex * 2.0) * 0.5 + 0.5;
-          vec3 flareColor = vec3(1.0, 0.7, 0.3);
-          gl_FragColor = vec4(flareColor, opacity * flareActivity);
-        }
-      `,
+    const flareMat = new THREE.MeshBasicMaterial({
+      color: 0xffb84d,
       transparent: true,
+      opacity: 0.6,
       blending: THREE.AdditiveBlending
     });
     
@@ -3343,77 +3263,20 @@
   scene3d.add(moonGroup);
   
   const moonGeom = new THREE.SphereGeometry(0.06, 64, 64);
-  const moonMat = new THREE.ShaderMaterial({
-    uniforms: {
-      time: { value: 0 },
-      sunDirection: { value: new THREE.Vector3(1, 0, 0) },
-      earthGlow: { value: 0.1 }
-    },
-    vertexShader: `
-      uniform float time;
-      varying vec3 vPosition;
-      varying vec3 vNormal;
-      void main() {
-        vPosition = position;
-        vNormal = normalize(normalMatrix * normal);
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform float time;
-      uniform vec3 sunDirection;
-      uniform float earthGlow;
-      varying vec3 vPosition;
-      varying vec3 vNormal;
-      
-      // Lunar surface texture
-      float lunarNoise(vec3 p) {
-        return fract(sin(dot(p, vec3(127.1, 311.7, 543.5))) * 43758.5453);
-      }
-      
-      void main() {
-        vec3 normal = normalize(vNormal);
-        float sunDot = max(0.0, dot(normal, normalize(sunDirection)));
-        
-        // Lunar surface detail
-        float craters = lunarNoise(vPosition * 20.0) * lunarNoise(vPosition * 40.0);
-        vec3 lunarColor = vec3(0.8, 0.8, 0.7) + craters * 0.2;
-        
-        // Sunlit and shadowed areas
-        vec3 litColor = lunarColor * sunDot;
-        vec3 shadowColor = lunarColor * earthGlow; // Earthshine
-        
-        vec3 finalColor = mix(shadowColor, litColor, sunDot);
-        
-        gl_FragColor = vec4(finalColor, 1.0);
-      }
-    `
+  const moonMat = new THREE.MeshPhongMaterial({
+    color: 0xccccb3,
+    shininess: 5,
+    specular: 0x333333
   });
   const moonMesh = new THREE.Mesh(moonGeom, moonMat);
   moonGroup.add(moonMesh);
   
-  // Subtle moon glow
+  // Simplified moon glow
   const moonGlowGeom = new THREE.SphereGeometry(0.08, 32, 32);
-  const moonGlowMat = new THREE.ShaderMaterial({
-    uniforms: {
-      time: { value: 0 },
-      opacity: { value: 0.15 }
-    },
-    vertexShader: `
-      uniform float time;
-      void main() {
-        gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-      }
-    `,
-    fragmentShader: `
-      uniform float time;
-      uniform float opacity;
-      void main() {
-        float glow = sin(time * 2.0) * 0.3 + 0.7;
-        gl_FragColor = vec4(0.9, 0.9, 0.8, opacity * glow);
-      }
-    `,
+  const moonGlowMat = new THREE.MeshBasicMaterial({
+    color: 0xe6e6cc,
     transparent: true,
+    opacity: 0.15,
     blending: THREE.AdditiveBlending,
     side: THREE.BackSide
   });
@@ -3424,32 +3287,14 @@
   const lensFlareGroup = new THREE.Group();
   scene3d.add(lensFlareGroup);
   
-  // Create lens flare elements for the Sun
+  // Simplified lens flare elements for the Sun
   for (let i = 0; i < 6; i++) {
     const flareGeom = new THREE.RingGeometry(0.1 + i * 0.15, 0.15 + i * 0.15, 16);
-    const flareMat = new THREE.ShaderMaterial({
-      uniforms: {
-        time: { value: 0 },
-        flareIndex: { value: i },
-        intensity: { value: 0.3 / (i + 1) }
-      },
-      vertexShader: `
-        uniform float time;
-        void main() {
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-        }
-      `,
-      fragmentShader: `
-        uniform float time;
-        uniform float flareIndex;
-        uniform float intensity;
-        void main() {
-          float flicker = sin(time * 5.0 + flareIndex * 3.14159) * 0.5 + 0.5;
-          vec3 flareColor = mix(vec3(1.0, 0.8, 0.4), vec3(0.8, 0.4, 1.0), flareIndex / 6.0);
-          gl_FragColor = vec4(flareColor, intensity * flicker);
-        }
-      `,
+    const flareColor = i < 3 ? 0xffcc66 : 0xcc66ff;
+    const flareMat = new THREE.MeshBasicMaterial({
+      color: flareColor,
       transparent: true,
+      opacity: 0.3 / (i + 1),
       blending: THREE.AdditiveBlending,
       side: THREE.DoubleSide
     });
@@ -3754,19 +3599,31 @@
     }
   }
   
+  */ // End of complex scene creation comment block
+  
   // ============ Update Function ============
   let lastUpdateTime = 0;
   const updateInterval = 100; // Update every 100ms for better performance
   
   function update() {
-    const now = Date.now();
-    if (now - lastUpdateTime < updateInterval) return;
-    lastUpdateTime = now;
-    
+    // Simplified update function for basic functionality
     try {
-      const lat = parseFloat(latInput.value) || 0;
-      const lon = parseFloat(lonInput.value) || 0;
-      const alt = parseFloat(altInput.value) || 0;
+      // Basic rotation for test cube if it exists
+      if (scene3d && scene3d.children.length > 0) {
+        scene3d.children.forEach(child => {
+          if (child.geometry && child.geometry.type === 'BoxGeometry') {
+            child.rotation.x += 0.01;
+            child.rotation.y += 0.01;
+          }
+          // Basic Earth rotation if it exists
+          if (child.geometry && child.geometry.type === 'SphereGeometry') {
+            child.rotation.y += 0.005; // Slow Earth rotation
+          }
+        });
+      }
+      return; // Early return to skip complex calculations
+      
+      /* // Complex update logic temporarily disabled
       
       const dateStr = timeInput.value;
       const date = dateStr ? new Date(dateStr + 'Z') : new Date();
@@ -3974,39 +3831,36 @@
         const newDate = new Date(date.getTime() + animSpeed * 1000);
         timeInput.value = newDate.toISOString().slice(0, 19);
       }
+      */ // End of complex update logic
     } catch (error) {
-      console.error("Error in update function:", error);
+      console.error("Error in simplified update function:", error);
     }
   }
   
-  // ============ OPTIMIZED RENDER LOOP ============
+  // ============ SIMPLIFIED RENDER LOOP ============
+  let frameCounter = 0;
   function animate() {
     requestAnimationFrame(animate);
     
-    // Performance monitoring for adaptive LOD
-    updatePerformanceMetrics();
-    
-    update();
-    controls3d.update();
-    controlsSky.update();
-    
-    // Manual shadow map updates for performance (only when needed)
-    const needsShadowUpdate = frameCount % 30 === 0; // Update shadows every 30 frames
-    if (renderer3d.shadowMap.enabled && needsShadowUpdate) {
-      renderer3d.shadowMap.needsUpdate = true;
+    frameCounter++;
+    if (frameCounter === 1) {
+      console.log('Animation loop started successfully');
+    }
+    if (frameCounter % 60 === 0) {
+      console.log('Render loop running, frame:', frameCounter);
+      console.log('3D Scene children count:', scene3d.children.length);
+      console.log('Sky Scene children count:', sceneSky.children.length);
     }
     
-    // Optimized clearing and rendering
-    renderer3d.autoClear = false;
-    renderer3d.clear(true, true, true);
-    renderer3d.render(scene3d, camera3d);
-    
-    // Sky view with simplified rendering
-    rendererSky.render(sceneSky, cameraSky);
-    
-    // Reset shadow update flag
-    if (needsShadowUpdate) {
-      renderer3d.shadowMap.needsUpdate = false;
+    try {
+      update();
+      controls3d.update();
+      controlsSky.update();
+      
+      renderer3d.render(scene3d, camera3d);
+      rendererSky.render(sceneSky, cameraSky);
+    } catch (error) {
+      console.error('Error in animate loop:', error);
     }
   }
   
@@ -4083,8 +3937,8 @@
   // Initialize view mode
   $('app').classList.add('view-mode-split');
   
-  // Start
-  setTimeout(() => {
+  // Start progressive initialization
+  async function startApp() {
     try {
       // Check if required elements exist
       if (!$('loading') || !$('app')) {
@@ -4092,29 +3946,40 @@
         return;
       }
       
-      // Wait for DOM to be fully ready
-      if (document.readyState !== 'loading') {
-        $('loading').style.display = 'none';
-        $('app').style.display = 'grid';
-        // Trigger resize to ensure proper initialization
-        onResize();
-        animate();
-      } else {
-        document.addEventListener('DOMContentLoaded', () => {
-          $('loading').style.display = 'none';
-          $('app').style.display = 'grid';
-          // Trigger resize to ensure proper initialization
-          onResize();
-          animate();
-        });
-      }
+      console.log('🚀 Starting progressive app initialization');
+      
+      // Start the basic app initialization
+      await initializeBasicApp();
+      
+      // Hide loading screen and show app
+      $('loading').style.display = 'none';
+      $('app').style.display = 'grid';
+      
+      // Trigger resize to ensure proper sizing
+      onResize();
+      
+      // Start animation loop
+      animate();
+      
+      console.log('✅ App startup complete!');
+      
     } catch (error) {
-      console.error("Error starting animation:", error);
+      console.error("❌ Error during app startup:", error);
       if ($('loading')) {
-        $('loading').innerHTML = "Error initializing application. Please check console for details.";
+        $('loading').innerHTML = `❌ Startup failed<br><small>${error.message}</small>`;
+        $('loading').style.color = '#ff6b6b';
       }
     }
-  }, 1500);
+  }
+  
+  // Start after a brief delay to ensure DOM is ready
+  setTimeout(() => {
+    if (document.readyState !== 'loading') {
+      startApp();
+    } else {
+      document.addEventListener('DOMContentLoaded', startApp);
+    }
+  }, 100);
   
 })();
   }
