@@ -757,6 +757,11 @@
 <body>
 <div class="loading" id="loading">Initializing Universe...</div>
 <div id="app" style="display: none;">
+  <div id="error-message" style="position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%); background: rgba(255, 0, 0, 0.8); color: white; padding: 20px; border-radius: 10px; display: none; z-index: 10000;">
+    <h2>Error Loading Application</h2>
+    <p>Please ensure you have an internet connection to load the required libraries.</p>
+    <button onclick="location.reload()" style="background: #667eea; color: white; border: none; padding: 10px 20px; border-radius: 5px; cursor: pointer; margin-top: 10px;">Retry</button>
+  </div>
   <header>
     <h1>🌌 Advanced Celestial Navigation System</h1>
     <div class="desc">Real-time astronomy, navigation, planets, constellations & scientific analysis</div>
@@ -915,11 +920,58 @@
   </ul>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 <script>
-// Ultra-Enhanced Celestial Navigation System with Planets & Constellations
-(function() {
-  'use strict';
+  // Simple Three.js loading
+  function loadThreeJS() {
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js';
+    script.onload = function() {
+      console.log('Three.js loaded');
+      initializeApp();
+    };
+    script.onerror = function() {
+      console.error('Failed to load Three.js');
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error-message').style.display = 'block';
+      document.getElementById('app').style.display = 'block';
+    };
+    document.head.appendChild(script);
+  }
+  
+  // Main application initialization
+  function initializeApp() {
+    console.log('Initializing app');
+    
+    // Check if Three.js is loaded
+    if (typeof THREE === 'undefined') {
+      console.log('Three.js not loaded');
+      document.getElementById('loading').style.display = 'none';
+      document.getElementById('error-message').style.display = 'block';
+      document.getElementById('app').style.display = 'block';
+      return;
+    }
+    
+    console.log('Three.js is loaded, starting app');
+    
+    // Add roundRect method to CanvasRenderingContext2D if not available
+    if (CanvasRenderingContext2D && !CanvasRenderingContext2D.prototype.roundRect) {
+      CanvasRenderingContext2D.prototype.roundRect = function(x, y, w, h, r) {
+        this.beginPath();
+        this.moveTo(x + r, y);
+        this.arcTo(x + w, y, x + w, y + h, r);
+        this.arcTo(x + w, y + h, x, y + h, r);
+        this.arcTo(x, y + h, x, y, r);
+        this.arcTo(x, y, x + w, y, r);
+        this.closePath();
+        return this;
+      };
+    }
+    
+    // Ultra-Enhanced Celestial Navigation System with Planets & Constellations
+    (function() {
+      'use strict';
+      
+      // ============ Constants ============
   
   // ============ Constants ============
   const DEG2RAD = Math.PI / 180;
@@ -3014,16 +3066,20 @@
       gradient.addColorStop(1, 'rgba(72, 61, 139, 0.8)');
       
       ctx.fillStyle = gradient;
-      ctx.roundRect = function(x, y, w, h, r) {
-        this.beginPath();
-        this.moveTo(x + r, y);
-        this.arcTo(x + w, y, x + w, y + h, r);
-        this.arcTo(x + w, y + h, x, y + h, r);
-        this.arcTo(x, y + h, x, y, r);
-        this.arcTo(x, y, x + w, y, r);
-        this.closePath();
-        return this;
-      };
+      
+      // Add roundRect method if not available
+      if (!ctx.roundRect) {
+        ctx.roundRect = function(x, y, w, h, r) {
+          this.beginPath();
+          this.moveTo(x + r, y);
+          this.arcTo(x + w, y, x + w, y + h, r);
+          this.arcTo(x + w, y + h, x, y + h, r);
+          this.arcTo(x, y + h, x, y, r);
+          this.arcTo(x, y, x + w, y, r);
+          this.closePath();
+          return this;
+        };
+      }
       
       ctx.roundRect(0, 0, 384, 96, 15);
       ctx.fill();
@@ -3957,15 +4013,28 @@
   // ============ Window Resize ============
   function onResize() {
     try {
-      const width3d = canvas3d.clientWidth;
-      const height3d = canvas3d.clientHeight;
+      // Ensure canvas elements have dimensions
+      if (canvas3d.clientWidth === 0 || canvas3d.clientHeight === 0) {
+        console.warn("Canvas3D has zero dimensions, using default size");
+        canvas3d.style.width = "100%";
+        canvas3d.style.height = "100%";
+      }
+      
+      if (canvasSky.clientWidth === 0 || canvasSky.clientHeight === 0) {
+        console.warn("CanvasSky has zero dimensions, using default size");
+        canvasSky.style.width = "100%";
+        canvasSky.style.height = "100%";
+      }
+      
+      const width3d = canvas3d.clientWidth || 800;
+      const height3d = canvas3d.clientHeight || 600;
       
       camera3d.aspect = width3d / height3d;
       camera3d.updateProjectionMatrix();
       renderer3d.setSize(width3d, height3d);
       
-      const widthSky = canvasSky.clientWidth;
-      const heightSky = canvasSky.clientHeight;
+      const widthSky = canvasSky.clientWidth || 800;
+      const heightSky = canvasSky.clientHeight || 600;
       
       cameraSky.aspect = widthSky / heightSky;
       cameraSky.updateProjectionMatrix();
@@ -4016,12 +4085,47 @@
   
   // Start
   setTimeout(() => {
-    $('loading').style.display = 'none';
-    $('app').style.display = 'grid';
-    animate();
-  }, 1000);
+    try {
+      // Check if required elements exist
+      if (!$('loading') || !$('app')) {
+        console.error("Required DOM elements not found");
+        return;
+      }
+      
+      // Wait for DOM to be fully ready
+      if (document.readyState !== 'loading') {
+        $('loading').style.display = 'none';
+        $('app').style.display = 'grid';
+        // Trigger resize to ensure proper initialization
+        onResize();
+        animate();
+      } else {
+        document.addEventListener('DOMContentLoaded', () => {
+          $('loading').style.display = 'none';
+          $('app').style.display = 'grid';
+          // Trigger resize to ensure proper initialization
+          onResize();
+          animate();
+        });
+      }
+    } catch (error) {
+      console.error("Error starting animation:", error);
+      if ($('loading')) {
+        $('loading').innerHTML = "Error initializing application. Please check console for details.";
+      }
+    }
+  }, 1500);
   
 })();
+  }
+  
+  // Load Three.js
+  if (typeof THREE === 'undefined') {
+    loadThreeJS();
+  } else {
+    // Three.js is already loaded
+    initializeApp();
+  }
 </script>
 </body>
 </html>
