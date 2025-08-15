@@ -930,6 +930,8 @@
 </div>
 
 <script>
+  // Top-level debug removed for performance
+  
   // Simple Three.js loading
   function loadThreeJS() {
     const script = document.createElement('script');
@@ -1478,11 +1480,13 @@
   
   // 3D Globe Scene
   const scene3d = new THREE.Scene();
-  console.log('3D Scene created successfully');
-  
   const camera3d = new THREE.PerspectiveCamera(60, 1, 0.1, 1000);
-  camera3d.position.set(0, 3, 6);
-  console.log('3D Camera created and positioned at:', camera3d.position);
+  camera3d.position.set(0, 0, 4); // Better initial position to view Earth at origin
+  
+  // Declare variables that need to be accessible across try blocks
+  let sceneSky, cameraSky, renderer3d, rendererSky;
+  
+  // Debug output removed for performance
   
   // ============ INITIALIZATION PROGRESS TRACKING ============
   const progressSteps = [
@@ -1491,20 +1495,33 @@
   ];
   let currentStep = 0;
   
+  // Define $ function early
+  const $ = id => document.getElementById(id);
+  
   function updateProgress(stepName) {
     currentStep++;
     console.log(`✓ ${stepName} (${currentStep}/${progressSteps.length})`);
-    if ($('loading')) {
-      $('loading').innerHTML = `Initializing Universe...<br><small>${stepName} (${currentStep}/${progressSteps.length})</small>`;
+    const loadingElement = $('loading');
+    if (loadingElement) {
+      loadingElement.innerHTML = `Initializing Universe...<br><small>${stepName} (${currentStep}/${progressSteps.length})</small>`;
+    } else {
+      console.error('Loading element not found!');
     }
   }
   
   function handleInitError(step, error) {
-    console.error(`❌ Failed at ${step}:`, error);
-    if ($('loading')) {
-      $('loading').innerHTML = `❌ Error loading ${step}<br><small>Check console for details</small>`;
-      $('loading').style.color = '#ff6b6b';
+    console.error(`Failed at ${step}:`, error);
+    const loadingElement = $('loading');
+    if (loadingElement) {
+      loadingElement.innerHTML = `Error loading ${step}<br><small>Check console for details</small>`;
+      loadingElement.style.color = '#ff6b6b';
     }
+  }
+  
+  if (typeof THREE === 'undefined') {
+    console.error('CRITICAL ERROR: THREE.js library not loaded!');
+    handleInitError('THREE.js Loading', new Error('THREE.js library not found'));
+    return;
   }
   
   updateProgress('WebGL Check');
@@ -1512,11 +1529,17 @@
   // ============ PERFORMANCE-OPTIMIZED RENDERERS ============
   
   // Adaptive quality based on device capabilities
-  const deviceCapabilities = {
-    isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
-    isLowEnd: navigator.hardwareConcurrency < 4 || navigator.deviceMemory < 4,
-    maxPixelRatio: Math.min(window.devicePixelRatio, 2)
-  };
+  let deviceCapabilities;
+  try {
+    deviceCapabilities = {
+      isMobile: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent),
+      isLowEnd: (navigator.hardwareConcurrency || 4) < 4 || (navigator.deviceMemory || 4) < 4,
+      maxPixelRatio: Math.min(window.devicePixelRatio || 1, 2)
+    };
+  } catch (error) {
+    console.error('Error creating device capabilities:', error);
+    deviceCapabilities = { isMobile: false, isLowEnd: false, maxPixelRatio: 1 };
+  }
   
   try {
     // Check WebGL support first
@@ -1525,30 +1548,29 @@
     if (!gl) {
       throw new Error('WebGL is not supported in this browser');
     }
-    console.log('WebGL support confirmed');
     updateProgress('Renderers');
-
-    // Simplified renderer settings for stability
-    const renderer3d = new THREE.WebGLRenderer({ 
-      antialias: true, 
-      alpha: true
+    
+    // Simplified renderer settings for performance
+    renderer3d = new THREE.WebGLRenderer({ 
+      antialias: false,
+      alpha: false,
+      powerPreference: "default"
     });
     
-    console.log('3D Renderer created successfully');
-    
-    renderer3d.setPixelRatio(window.devicePixelRatio);
-    
-    // Basic shadow settings
-    renderer3d.shadowMap.enabled = true;
-    renderer3d.shadowMap.type = THREE.PCFShadowMap;
-    
+    renderer3d.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer3d.shadowMap.enabled = false; // Disable shadows for performance
+    renderer3d.setClearColor(0x000011, 1); // Dark blue background for space
     canvas3d.appendChild(renderer3d.domElement);
     
     // Set size after adding to DOM
     setTimeout(() => {
       const rect = canvas3d.getBoundingClientRect();
-      renderer3d.setSize(rect.width || 800, rect.height || 600);
-      console.log('3D Renderer configured, canvas size:', rect.width || 800, 'x', rect.height || 600);
+      const width = rect.width || 800;
+      const height = rect.height || 600;
+      renderer3d.setSize(width, height);
+      camera3d.aspect = width / height;
+      camera3d.updateProjectionMatrix();
+      console.log('Renderer sized to:', width, 'x', height);
     }, 100);
   } catch (error) {
     handleInitError('WebGL/Renderer Setup', error);
@@ -1556,41 +1578,58 @@
   }
   
   try {
-    // Sky View Scene (Observer's perspective)
-    const sceneSky = new THREE.Scene();
-    const cameraSky = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
+    // Sky renderer temporarily disabled for performance
+    /* 
+    sceneSky = new THREE.Scene();
+    cameraSky = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
     cameraSky.position.set(0, 0, 0);
     
-    // Simplified sky renderer
-    const rendererSky = new THREE.WebGLRenderer({ 
-      antialias: true,
-      alpha: true
+    rendererSky = new THREE.WebGLRenderer({ 
+      antialias: false,
+      alpha: false
     });
-    console.log('Sky Renderer created successfully');
     
-    rendererSky.setPixelRatio(window.devicePixelRatio);
+    rendererSky.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    canvasSky.appendChild(rendererSky.domElement);
+    
+    setTimeout(() => {
+      const rect = canvasSky.getBoundingClientRect();
+      rendererSky.setSize(rect.width || 800, rect.height || 600);
+    }, 100);
+    */
+    
+    // Create working sky view setup
+    sceneSky = new THREE.Scene();
+    cameraSky = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
+    
+    // Create actual sky renderer instead of dummy
+    rendererSky = new THREE.WebGLRenderer({ 
+      antialias: false,
+      alpha: false,
+      powerPreference: "default"
+    });
+    
+    rendererSky.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    rendererSky.setClearColor(0x000008, 1); // Very dark blue for night sky
     canvasSky.appendChild(rendererSky.domElement);
     
     // Set size after adding to DOM
     setTimeout(() => {
       const rect = canvasSky.getBoundingClientRect();
-      rendererSky.setSize(rect.width || 800, rect.height || 600);
-      console.log('Sky Renderer configured, canvas size:', rect.width || 800, 'x', rect.height || 600);
+      const width = rect.width || 800;
+      const height = rect.height || 600;
+      rendererSky.setSize(width, height);
+      cameraSky.aspect = width / height;
+      cameraSky.updateProjectionMatrix();
+      console.log('Sky renderer sized to:', width, 'x', height);
     }, 100);
     
-    console.log('Sky Renderer configured and added to DOM');
     updateProgress('Basic Scene');
     
-    // Add a simple test object to ensure rendering works
-    const testGeometry = new THREE.BoxGeometry(1, 1, 1);
-    const testMaterial = new THREE.MeshBasicMaterial({ color: 0xff0000 });
-    const testCube = new THREE.Mesh(testGeometry, testMaterial);
-    testCube.position.set(0, 0, 0);
-    scene3d.add(testCube);
-    console.log('Test cube added to 3D scene');
+    // Test cube removed - no longer needed
     
   } catch (error) {
-    handleInitError('Sky Renderer Setup', error);
+    handleInitError('Basic Scene Setup', error);
     return;
   }
   
@@ -1660,7 +1699,7 @@
     constructor(camera, domElement) {
       this.camera = camera;
       this.domElement = domElement;
-      this.spherical = new THREE.Spherical(8, Math.PI/3, 0);
+      this.spherical = new THREE.Spherical(5, Math.PI/2.5, 0); // Better initial view angle and distance
       this.target = new THREE.Vector3(0, 0, 0);
       this.isDragging = false;
       this.previousMouse = { x: 0, y: 0 };
@@ -1685,8 +1724,8 @@
       if (!this.isDragging) return;
       const deltaX = e.clientX - this.previousMouse.x;
       const deltaY = e.clientY - this.previousMouse.y;
-      this.spherical.theta -= deltaX * 0.01;
-      this.spherical.phi = clamp(this.spherical.phi + deltaY * 0.01, 0.1, Math.PI - 0.1);
+      this.spherical.theta -= deltaX * 0.005; // More responsive rotation
+      this.spherical.phi = clamp(this.spherical.phi + deltaY * 0.005, 0.1, Math.PI - 0.1);
       this.previousMouse = { x: e.clientX, y: e.clientY };
       this.update();
     }
@@ -1713,8 +1752,8 @@
       e.preventDefault();
       const deltaX = e.touches[0].clientX - this.previousMouse.x;
       const deltaY = e.touches[0].clientY - this.previousMouse.y;
-      this.spherical.theta -= deltaX * 0.01;
-      this.spherical.phi = clamp(this.spherical.phi + deltaY * 0.01, 0.1, Math.PI - 0.1);
+      this.spherical.theta -= deltaX * 0.005; // More responsive rotation
+      this.spherical.phi = clamp(this.spherical.phi + deltaY * 0.005, 0.1, Math.PI - 0.1);
       this.previousMouse = { x: e.touches[0].clientX, y: e.touches[0].clientY };
       this.update();
     }
@@ -1740,25 +1779,46 @@
   
   // ============ PROGRESSIVE SCENE LOADING ============
   
-  // Basic lighting setup
+  // Improved lighting setup for better Earth appearance
   try {
-    const ambientLight = new THREE.AmbientLight(0x404040, 0.3);
+    const ambientLight = new THREE.AmbientLight(0x404040, 0.2); // Reduce ambient for more dramatic lighting
     scene3d.add(ambientLight);
     
-    const directionalLight = new THREE.DirectionalLight(0xffffff, 1);
-    directionalLight.position.set(1, 1, 1);
-    scene3d.add(directionalLight);
+    // Main directional light (Sun)
+    const sunLight = new THREE.DirectionalLight(0xfffaee, 0.8);
+    sunLight.position.set(5, 2, 5);
+    sunLight.castShadow = false; // Disabled for performance
+    scene3d.add(sunLight);
     
-    console.log('Basic lighting added');
+    // Fill light from opposite side (starlight/earthshine)
+    const fillLight = new THREE.DirectionalLight(0x4488ff, 0.2);
+    fillLight.position.set(-3, -1, -3);
+    scene3d.add(fillLight);
+    
+    // Hemisphere light for realistic sky lighting
+    const hemisphereLight = new THREE.HemisphereLight(0x87CEEB, 0x222222, 0.3);
+    scene3d.add(hemisphereLight);
+    
     updateProgress('Controls');
     
-    // Create controls now that renderers are ready
-    controls3d = new OrbitControls(camera3d, renderer3d.domElement);
-    controlsSky = new OrbitControls(cameraSky, rendererSky.domElement);
-    controlsSky.spherical.radius = 0.1;
-    
-    console.log('Controls created successfully');
-    updateProgress('UI Setup');
+    // Create controls for 3D view only (sky controls disabled for performance)
+    try {
+      controls3d = new OrbitControls(camera3d, renderer3d.domElement);
+      
+      // Initial controls update to set proper camera position
+      controls3d.update();
+      
+      // Create sky controls for observer view
+      controlsSky = new OrbitControls(cameraSky, rendererSky.domElement);
+      
+      console.log('Controls initialized and updated');
+      console.log('Camera position after controls update:', camera3d.position);
+      
+      updateProgress('UI Setup');
+    } catch (controlsError) {
+      console.error('Error creating controls:', controlsError);
+      throw controlsError;
+    }
     
   } catch (error) {
     handleInitError('Basic Lighting/Controls', error);
@@ -1772,14 +1832,80 @@
       updateProgress('Earth');
       await new Promise(resolve => setTimeout(resolve, 50)); // Allow UI update
       
-      // Simple Earth
-      const earthGeom = new THREE.SphereGeometry(1, 32, 32);
-      const earthMat = new THREE.MeshPhongMaterial({ 
-        color: 0x2233aa,
-        shininess: 100
+      // Beautiful Earth with smooth, realistic appearance
+      const earthGeom = new THREE.SphereGeometry(1, 32, 32); // Higher detail for smoother appearance
+      
+      // Create a beautiful Earth texture with smooth gradients
+      const canvas = document.createElement('canvas');
+      canvas.width = 512;
+      canvas.height = 256;
+      const ctx = canvas.getContext('2d');
+      
+      // Create realistic ocean with depth gradient
+      const oceanGradient = ctx.createRadialGradient(256, 128, 0, 256, 128, 300);
+      oceanGradient.addColorStop(0, '#1e3a8a'); // Deep blue center
+      oceanGradient.addColorStop(0.6, '#2563eb'); // Medium blue
+      oceanGradient.addColorStop(1, '#3b82f6'); // Lighter blue edges
+      
+      ctx.fillStyle = oceanGradient;
+      ctx.fillRect(0, 0, 512, 256);
+      
+      // Add realistic continent shapes with smooth edges
+      ctx.fillStyle = '#16a34a'; // Rich green for land
+      
+      // Africa and Europe
+      ctx.beginPath();
+      ctx.ellipse(120, 130, 35, 45, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Asia
+      ctx.beginPath();
+      ctx.ellipse(220, 100, 50, 30, 0.3, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // North America
+      ctx.beginPath();
+      ctx.ellipse(380, 90, 40, 35, -0.2, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // South America
+      ctx.beginPath();
+      ctx.ellipse(400, 160, 25, 40, 0.1, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Australia
+      ctx.beginPath();
+      ctx.ellipse(280, 180, 20, 15, 0, 0, Math.PI * 2);
+      ctx.fill();
+      
+      // Add mountain ranges and forests with lighter green
+      ctx.fillStyle = '#22c55e';
+      ctx.globalAlpha = 0.7;
+      
+      // Mountain details
+      for (let i = 0; i < 20; i++) {
+        const x = Math.random() * 512;
+        const y = Math.random() * 256;
+        const size = Math.random() * 8 + 2;
+        ctx.beginPath();
+        ctx.arc(x, y, size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      
+      ctx.globalAlpha = 1.0;
+      
+      const earthTexture = new THREE.CanvasTexture(canvas);
+      earthTexture.wrapS = THREE.RepeatWrapping;
+      
+      const earthMat = new THREE.MeshLambertMaterial({ 
+        map: earthTexture
       });
+      
       const earth = new THREE.Mesh(earthGeom, earthMat);
+      earth.position.set(0, 0, 0); // Explicitly set Earth position
       scene3d.add(earth);
+      
+      console.log('Earth mesh created with procedural texture:', earth);
       
       console.log('Basic Earth added');
       return earth;
@@ -1794,12 +1920,14 @@
       updateProgress('Stars');
       await new Promise(resolve => setTimeout(resolve, 50)); // Allow UI update
       
-      // Simple star field
+      // Improved star field with better distribution and brightness variation
       const starGeometry = new THREE.BufferGeometry();
       const starPositions = [];
+      const starColors = [];
       
-      for (let i = 0; i < 100; i++) {
-        const radius = 50;
+      // Create stars at various distances and brightnesses
+      for (let i = 0; i < 300; i++) {
+        const radius = 30 + Math.random() * 60; // Vary distance
         const theta = Math.random() * Math.PI * 2;
         const phi = Math.random() * Math.PI;
         
@@ -1808,15 +1936,143 @@
           radius * Math.cos(phi),
           radius * Math.sin(phi) * Math.sin(theta)
         );
+        
+        // Vary star colors (white to slightly blue/yellow)
+        const brightness = 0.5 + Math.random() * 0.5;
+        const temp = Math.random();
+        if (temp < 0.3) {
+          // Blue-white stars
+          starColors.push(brightness * 0.8, brightness * 0.9, brightness);
+        } else if (temp > 0.7) {
+          // Yellow-white stars
+          starColors.push(brightness, brightness * 0.9, brightness * 0.7);
+        } else {
+          // White stars
+          starColors.push(brightness, brightness, brightness);
+        }
       }
       
       starGeometry.setAttribute('position', new THREE.Float32BufferAttribute(starPositions, 3));
-      const starMaterial = new THREE.PointsMaterial({ color: 0xffffff, size: 2 });
+      starGeometry.setAttribute('color', new THREE.Float32BufferAttribute(starColors, 3));
+      
+      const starMaterial = new THREE.PointsMaterial({ 
+        vertexColors: true,
+        size: 2,
+        sizeAttenuation: false
+      });
       const stars = new THREE.Points(starGeometry, starMaterial);
       scene3d.add(stars);
       
-      console.log('Basic stars added');
-      return stars;
+      // Enhanced constellation lines for major constellations
+      const constellationGeometry = new THREE.BufferGeometry();
+      const constellationPositions = [];
+      
+      // Big Dipper (Ursa Major) - more accurate positioning
+      const bigDipperStars = [
+        [-45, 25, 35], [-40, 28, 37], [-35, 30, 40], [-30, 28, 38],
+        [-25, 25, 36], [-20, 32, 33], [-15, 38, 30]
+      ];
+      
+      // Connect Big Dipper stars in proper order
+      for (let i = 0; i < bigDipperStars.length - 1; i++) {
+        constellationPositions.push(...bigDipperStars[i]);
+        constellationPositions.push(...bigDipperStars[i + 1]);
+      }
+      
+      // Orion constellation - more detailed and recognizable
+      const orionStars = [
+        // Belt stars (Alnitak, Alnilam, Mintaka)
+        [28, -18, 45], [32, -16, 47], [36, -14, 49],
+        // Shoulders (Betelgeuse, Bellatrix)
+        [25, -8, 42], [39, -10, 52],
+        // Sword/legs
+        [20, -25, 40], [44, -26, 54], [32, -30, 48]
+      ];
+      
+      // Connect Orion stars to form recognizable pattern
+      const orionConnections = [
+        [0,1], [1,2], // Belt
+        [3,0], [2,4], // Shoulders to belt
+        [5,0], [6,2], // Lower body
+        [7,1] // Sword
+      ];
+      orionConnections.forEach(([a, b]) => {
+        constellationPositions.push(...orionStars[a]);
+        constellationPositions.push(...orionStars[b]);
+      });
+      
+      // Cassiopeia (W shape)
+      const cassiopeiaStars = [
+        [50, 35, 20], [55, 40, 25], [60, 38, 30], [65, 42, 35], [70, 40, 40]
+      ];
+      for (let i = 0; i < cassiopeiaStars.length - 1; i++) {
+        constellationPositions.push(...cassiopeiaStars[i]);
+        constellationPositions.push(...cassiopeiaStars[i + 1]);
+      }
+      
+      // Southern Cross
+      const southernCrossStars = [
+        [15, -45, 55], [20, -50, 60], [25, -45, 65], [20, -40, 55], [20, -50, 60]
+      ];
+      const crossConnections = [[0,2], [1,3], [1,4]];
+      crossConnections.forEach(([a, b]) => {
+        constellationPositions.push(...southernCrossStars[a]);
+        constellationPositions.push(...southernCrossStars[b]);
+      });
+      
+      constellationGeometry.setAttribute('position', new THREE.Float32BufferAttribute(constellationPositions, 3));
+      
+      const constellationMaterial = new THREE.LineBasicMaterial({ 
+        color: 0x66ccff, 
+        opacity: 0.6, 
+        transparent: true,
+        linewidth: 2
+      });
+      const constellationLines = new THREE.LineSegments(constellationGeometry, constellationMaterial);
+      scene3d.add(constellationLines);
+      
+      // Also add a copy of stars to the sky scene for observer view
+      const skyStarGeometry = new THREE.BufferGeometry();
+      const skyStarPositions = [];
+      const skyStarColors = [];
+      
+      // Create a flattened star field for observer's sky view
+      for (let i = 0; i < 200; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi = Math.random() * Math.PI / 2; // Only upper hemisphere
+        const radius = 50;
+        
+        skyStarPositions.push(
+          radius * Math.sin(phi) * Math.cos(theta),
+          radius * Math.cos(phi),
+          radius * Math.sin(phi) * Math.sin(theta)
+        );
+        
+        // Random star colors
+        const brightness = 0.5 + Math.random() * 0.5;
+        const temp = Math.random();
+        if (temp < 0.3) {
+          skyStarColors.push(brightness * 0.8, brightness * 0.9, brightness);
+        } else if (temp > 0.7) {
+          skyStarColors.push(brightness, brightness * 0.9, brightness * 0.7);
+        } else {
+          skyStarColors.push(brightness, brightness, brightness);
+        }
+      }
+      
+      skyStarGeometry.setAttribute('position', new THREE.Float32BufferAttribute(skyStarPositions, 3));
+      skyStarGeometry.setAttribute('color', new THREE.Float32BufferAttribute(skyStarColors, 3));
+      
+      const skyStarMaterial = new THREE.PointsMaterial({ 
+        vertexColors: true,
+        size: 3,
+        sizeAttenuation: false
+      });
+      const skyStars = new THREE.Points(skyStarGeometry, skyStarMaterial);
+      sceneSky.add(skyStars);
+      
+      console.log('Basic stars and constellation lines added to both scenes');
+      return { stars, constellationLines, skyStars };
     } catch (error) {
       console.error('Error loading stars:', error);
       throw error;
@@ -1832,6 +2088,18 @@
       updateProgress('Complete');
       
       console.log('✅ Basic app initialized successfully');
+      console.log('Scene3D children count:', scene3d.children.length);
+      console.log('Scene3D children:', scene3d.children.map(child => ({
+        type: child.type,
+        name: child.name || 'unnamed',
+        position: child.position,
+        visible: child.visible,
+        geometry: child.geometry?.type,
+        material: child.material?.type
+      })));
+      console.log('Camera3D position:', camera3d.position);
+      console.log('Camera3D looking at:', camera3d.getWorldDirection(new THREE.Vector3()));
+      
       return { earth, stars };
     } catch (error) {
       handleInitError('Basic App Initialization', error);
@@ -1930,7 +2198,7 @@
   renderer.outputColorSpace = THREE.SRGBColorSpace;
   
   // ============ Earth (Ultra-realistic) ============
-  const earthGeometry = new THREE.SphereGeometry(1, 128, 128);
+  const earthGeometry = new THREE.SphereGeometry(1, 32, 32); // Reduced from 128x128 to 32x32
   
   // Create realistic Earth texture with detailed continents
   const earthCanvas = document.createElement('canvas');
@@ -2345,7 +2613,7 @@
   scene3d.add(earth);
   
   // Simplified Atmosphere
-  const atmosphereGeometry = new THREE.SphereGeometry(1.02, 64, 64);
+  const atmosphereGeometry = new THREE.SphereGeometry(1.02, 16, 16); // Reduced from 64x64 to 16x16
   const atmosphereMaterial = new THREE.MeshBasicMaterial({
     color: 0x4466ff,
     transparent: true,
@@ -2356,7 +2624,7 @@
   scene3d.add(atmosphere);
   
   // Simplified outer atmospheric glow
-  const outerAtmosphereGeometry = new THREE.SphereGeometry(1.05, 64, 64);
+  const outerAtmosphereGeometry = new THREE.SphereGeometry(1.05, 16, 16); // Reduced from 64x64 to 16x16
   const outerAtmosphereMaterial = new THREE.MeshBasicMaterial({
     color: 0x3366cc,
     transparent: true,
@@ -2696,7 +2964,7 @@
   cosmicGroup.add(milkyWayGroup);
   
   // Main galactic plane
-  const galacticPlaneGeom = new THREE.RingGeometry(88, 110, 64, 1, 0, Math.PI * 2);
+  const galacticPlaneGeom = new THREE.RingGeometry(88, 110, 16, 1, 0, Math.PI * 2); // Reduced segments from 64 to 16
   const galacticPlaneMat = new THREE.MeshBasicMaterial({
     color: 0x4a5568,
     transparent: true,
@@ -2709,7 +2977,7 @@
   milkyWayGroup.add(galacticPlane);
   
   // Bright galactic center
-  const galacticCenterGeom = new THREE.RingGeometry(92, 106, 32, 1, 0, Math.PI * 2);
+  const galacticCenterGeom = new THREE.RingGeometry(92, 106, 16, 1, 0, Math.PI * 2); // Reduced segments from 32 to 16
   const galacticCenterMat = new THREE.MeshBasicMaterial({
     color: 0xffd700,
     transparent: true,
@@ -2778,7 +3046,7 @@
     
     // Create multi-layer nebula effect
     const nebulaCore = new THREE.Mesh(
-      new THREE.SphereGeometry(nebula.size * 0.3, 16, 16),
+      new THREE.SphereGeometry(nebula.size * 0.3, 8, 8), // Reduced segments for performance
       new THREE.MeshBasicMaterial({
         color: nebula.color,
         transparent: true,
@@ -2789,7 +3057,7 @@
     nebulaCore.position.copy(pos);
     
     const nebulaHalo = new THREE.Mesh(
-      new THREE.SphereGeometry(nebula.size, 16, 16),
+      new THREE.SphereGeometry(nebula.size, 8, 8), // Reduced segments for performance
       new THREE.MeshBasicMaterial({
         color: nebula.color,
         transparent: true,
@@ -2800,7 +3068,7 @@
     nebulaHalo.position.copy(pos);
     
     const nebulaGlow = new THREE.Mesh(
-      new THREE.SphereGeometry(nebula.size * 1.8, 12, 12),
+      new THREE.SphereGeometry(nebula.size * 1.8, 6, 6), // Reduced segments for performance
       new THREE.MeshBasicMaterial({
         color: nebula.color,
         transparent: true,
@@ -2814,7 +3082,7 @@
     
     // Add to sky view with simpler representation
     const skyNebula = new THREE.Mesh(
-      new THREE.SphereGeometry(nebula.size * 0.5, 12, 12),
+      new THREE.SphereGeometry(nebula.size * 0.5, 6, 6), // Reduced segments for performance
       new THREE.MeshBasicMaterial({
         color: nebula.color,
         transparent: true,
@@ -2870,7 +3138,7 @@
       const starColor = cluster.type === 'globular' ? 0xffd700 : 0xaabbff;
       
       const clusterStar = new THREE.Mesh(
-        new THREE.SphereGeometry(starSize, 8, 8),
+        new THREE.SphereGeometry(starSize, 6, 6), // Reduced segments for performance
         new THREE.MeshBasicMaterial({
           color: starColor,
           transparent: true,
@@ -2886,7 +3154,7 @@
   
   // === ZODIACAL LIGHT ===
   
-  const zodiacalGeom = new THREE.ConeGeometry(25, 50, 32, 1, true);
+  const zodiacalGeom = new THREE.ConeGeometry(25, 50, 12, 1, true); // Reduced from 32 to 12 segments
   const zodiacalMat = new THREE.MeshBasicMaterial({
     color: 0xffd700,
     transparent: true,
@@ -2903,7 +3171,7 @@
   // Add simplified cosmic dust clouds
   for (let i = 0; i < 40; i++) {
     const cloudSize = Math.random() * 3 + 1;
-    const cloudGeometry = new THREE.SphereGeometry(cloudSize, 16, 16);
+    const cloudGeometry = new THREE.SphereGeometry(cloudSize, 8, 8); // Reduced from 16x16 to 8x8
     const cloudColor = new THREE.Color(
       0.2 + Math.random() * 0.6,
       0.2 + Math.random() * 0.4,
@@ -3178,7 +3446,7 @@
   
   Object.entries(PLANETS).forEach(([name, data]) => {
     // Planet sphere
-    const planetGeom = new THREE.SphereGeometry(data.size, 32, 32);
+    const planetGeom = new THREE.SphereGeometry(data.size, 12, 12); // Reduced from 32x32 to 12x12
     const planetMat = new THREE.MeshPhongMaterial({ 
       color: data.color,
       emissive: data.color,
@@ -3216,7 +3484,7 @@
   scene3d.add(sunGroup);
   
   // Simplified Sun
-  const sunGeom = new THREE.SphereGeometry(0.12, 64, 64);
+  const sunGeom = new THREE.SphereGeometry(0.12, 16, 16); // Reduced from 64x64 to 16x16
   const sunMat = new THREE.MeshBasicMaterial({
     color: 0xffff00,
     emissive: 0xffff00,
@@ -3228,7 +3496,7 @@
   // Simplified corona effect
   for (let i = 0; i < 4; i++) {
     const coronaSize = 0.15 + i * 0.05;
-    const coronaGeom = new THREE.SphereGeometry(coronaSize, 32, 32);
+    const coronaGeom = new THREE.SphereGeometry(coronaSize, 12, 12); // Reduced from 32x32 to 12x12
     const coronaColor = i < 2 ? 0xffcc66 : 0xff6633;
     const coronaMat = new THREE.MeshBasicMaterial({
       color: coronaColor,
@@ -3262,7 +3530,7 @@
   const moonGroup = new THREE.Group();
   scene3d.add(moonGroup);
   
-  const moonGeom = new THREE.SphereGeometry(0.06, 64, 64);
+  const moonGeom = new THREE.SphereGeometry(0.06, 16, 16); // Reduced from 64x64 to 16x16
   const moonMat = new THREE.MeshPhongMaterial({
     color: 0xccccb3,
     shininess: 5,
@@ -3272,7 +3540,7 @@
   moonGroup.add(moonMesh);
   
   // Simplified moon glow
-  const moonGlowGeom = new THREE.SphereGeometry(0.08, 32, 32);
+  const moonGlowGeom = new THREE.SphereGeometry(0.08, 12, 12); // Reduced from 32x32 to 12x12
   const moonGlowMat = new THREE.MeshBasicMaterial({
     color: 0xe6e6cc,
     transparent: true,
@@ -3289,7 +3557,7 @@
   
   // Simplified lens flare elements for the Sun
   for (let i = 0; i < 6; i++) {
-    const flareGeom = new THREE.RingGeometry(0.1 + i * 0.15, 0.15 + i * 0.15, 16);
+    const flareGeom = new THREE.RingGeometry(0.1 + i * 0.15, 0.15 + i * 0.15, 8); // Reduced from 16 to 8 segments
     const flareColor = i < 3 ? 0xffcc66 : 0xcc66ff;
     const flareMat = new THREE.MeshBasicMaterial({
       color: flareColor,
@@ -3603,24 +3871,54 @@
   
   // ============ Update Function ============
   let lastUpdateTime = 0;
+  let lastSlowUpdateTime = 0;
   const updateInterval = 100; // Update every 100ms for better performance
+  const slowUpdateInterval = 500; // Expensive calculations every 500ms
+  
+  // Cache frequently used values
+  let cachedEarthMesh = null;
   
   function update() {
-    // Simplified update function for basic functionality
+    const now = performance.now();
+    
+    // Only update if enough time has passed (throttling)
+    if (now - lastUpdateTime < 16) return; // ~60fps max
+    
     try {
-      // Basic rotation for test cube if it exists
+      // Cache scene objects on first run to avoid repeated searches
+      if (!cachedEarthMesh) {
+        if (scene3d && scene3d.children.length > 0) {
+          scene3d.children.forEach(child => {
+            if (child.geometry && child.geometry.type === 'SphereGeometry' && !cachedEarthMesh) {
+              cachedEarthMesh = child;
+            }
+          });
+        }
+      }
+      
+      if (cachedEarthMesh) {
+        cachedEarthMesh.rotation.y += 0.005; // Slow Earth rotation
+      }
+      
+      // Essential scene updates - always do these for basic functionality
       if (scene3d && scene3d.children.length > 0) {
         scene3d.children.forEach(child => {
-          if (child.geometry && child.geometry.type === 'BoxGeometry') {
-            child.rotation.x += 0.01;
-            child.rotation.y += 0.01;
-          }
-          // Basic Earth rotation if it exists
-          if (child.geometry && child.geometry.type === 'SphereGeometry') {
-            child.rotation.y += 0.005; // Slow Earth rotation
+          // Make sure all objects are visible and properly positioned
+          if (child.isMesh && child.material) {
+            child.visible = true;
           }
         });
       }
+      
+      lastUpdateTime = now;
+      
+      // Expensive calculations and DOM updates (less frequent)
+      if (now - lastSlowUpdateTime > slowUpdateInterval) {
+        updateDOMElements();
+        updateAstronomicalCalculations();
+        lastSlowUpdateTime = now;
+      }
+      
       return; // Early return to skip complex calculations
       
       /* // Complex update logic temporarily disabled
@@ -3837,30 +4135,131 @@
     }
   }
   
-  // ============ SIMPLIFIED RENDER LOOP ============
-  let frameCounter = 0;
+  // ============ DOM UPDATE FUNCTION (THROTTLED) ============
+  function updateDOMElements() {
+    try {
+      // Get current input values
+      const dateStr = timeInput.value;
+      const date = dateStr ? new Date(dateStr + 'Z') : new Date();
+      const jd = toJulianDay(date);
+      const lat = parseFloat(latInput.value) || 40.7128;
+      const lon = parseFloat(lonInput.value) || -74.0060;
+      
+      // Calculate astronomical values
+      const gmst = greenwichMeanSiderealTime(jd);
+      const lst = localSiderealTime(jd, lon);
+      
+      // Update time displays (throttled to improve performance)
+      const jdElement = $('jd');
+      const gmstElement = $('gmst');
+      const lstElement = $('lst');
+      
+      if (jdElement) jdElement.textContent = jd.toFixed(2);
+      if (gmstElement) gmstElement.textContent = (gmst / 15).toFixed(2) + 'h';
+      if (lstElement) lstElement.textContent = (lst / 15).toFixed(2) + 'h';
+      
+      // Solar position
+      const sun = solarPosition(jd);
+      const sunAltAz = raDecToAltAz(sun.ra, sun.dec, lat, lon, lst);
+      const sunPosElement = $('sunPos');
+      if (sunPosElement) {
+        sunPosElement.textContent = `${sunAltAz.azimuth.toFixed(0)}°/${sunAltAz.altitude.toFixed(0)}°`;
+      }
+      
+      // Lunar position
+      const moon = lunarPosition(jd);
+      const moonAltAz = raDecToAltAz(moon.ra, moon.dec, lat, lon, lst);
+      const moonPosElement = $('moonPos');
+      if (moonPosElement) {
+        moonPosElement.textContent = `${moonAltAz.azimuth.toFixed(0)}°/${moonAltAz.altitude.toFixed(0)}°`;
+      }
+      
+      // Update planet list (less frequently)
+      const planetListElement = $('planetList');
+      if (planetListElement && typeof PLANETS !== 'undefined') {
+        let planetHTML = '';
+        Object.entries(PLANETS).forEach(([name, data]) => {
+          const pos = planetPosition(name, jd);
+          const altAz = raDecToAltAz(pos.ra, pos.dec, lat, lon, lst);
+          planetHTML += `<div>${data.symbol} ${name}: Az ${altAz.azimuth.toFixed(0)}° Alt ${altAz.altitude.toFixed(0)}°</div>`;
+        });
+        planetListElement.innerHTML = planetHTML;
+      }
+      
+      // Update navigation stars (less frequently)
+      const navStarsElement = $('navStars');
+      if (navStarsElement && typeof FAMOUS_STARS !== 'undefined') {
+        let starHTML = '';
+        const visibleStars = FAMOUS_STARS
+          .filter(star => star.category === 'navigation' || star.category === 'famous')
+          .slice(0, 8);
+        
+        visibleStars.forEach(star => {
+          const altAz = raDecToAltAz(star.ra, star.dec, lat, lon, lst);
+          if (altAz.altitude > 5) {
+            const brightness = star.mag < 1 ? '⭐' : star.mag < 2 ? '✦' : '✧';
+            starHTML += `<div>${brightness} ${star.name} (${star.constellation}): Az ${altAz.azimuth.toFixed(0)}° Alt ${altAz.altitude.toFixed(0)}°</div>`;
+          }
+        });
+        navStarsElement.innerHTML = starHTML || '<div style="opacity:0.5">No prominent stars visible</div>';
+      }
+      
+    } catch (error) {
+      console.warn("Error updating DOM elements:", error);
+    }
+  }
+  
+  // ============ ASTRONOMICAL CALCULATIONS (THROTTLED) ============
+  function updateAstronomicalCalculations() {
+    try {
+      // Get cached Earth mesh for rotation
+      if (!cachedEarthMesh && scene3d) {
+        scene3d.children.forEach(child => {
+          if (child.geometry && child.geometry.type === 'SphereGeometry' && !cachedEarthMesh) {
+            cachedEarthMesh = child;
+          }
+        });
+      }
+      
+      // Basic Earth rotation based on time
+      if (cachedEarthMesh && typeof timeInput !== 'undefined') {
+        const dateStr = timeInput.value;
+        if (dateStr) {
+          const date = new Date(dateStr + 'Z');
+          const hours = date.getUTCHours() + date.getUTCMinutes() / 60;
+          // Rotate Earth to show approximate day/night cycle
+          const earthRotation = (hours / 24) * Math.PI * 2;
+          cachedEarthMesh.rotation.y = earthRotation;
+        }
+      }
+    } catch (error) {
+      console.warn("Error in astronomical calculations:", error);
+    }
+  }
+  
+  // ============ OPTIMIZED RENDER LOOP ============
   function animate() {
     requestAnimationFrame(animate);
     
-    frameCounter++;
-    if (frameCounter === 1) {
-      console.log('Animation loop started successfully');
-    }
-    if (frameCounter % 60 === 0) {
-      console.log('Render loop running, frame:', frameCounter);
-      console.log('3D Scene children count:', scene3d.children.length);
-      console.log('Sky Scene children count:', sceneSky.children.length);
-    }
-    
     try {
       update();
-      controls3d.update();
-      controlsSky.update();
+      if (controls3d) {
+        controls3d.update();
+      }
+      if (controlsSky && controlsSky.update) {
+        controlsSky.update();
+      }
       
-      renderer3d.render(scene3d, camera3d);
-      rendererSky.render(sceneSky, cameraSky);
+      if (renderer3d && scene3d && camera3d) {
+        renderer3d.render(scene3d, camera3d);
+      }
+      if (rendererSky && rendererSky.render && sceneSky && cameraSky) {
+        rendererSky.render(sceneSky, cameraSky);
+      }
     } catch (error) {
       console.error('Error in animate loop:', error);
+      console.error('Scene children count:', scene3d ? scene3d.children.length : 'no scene');
+      console.error('Camera position:', camera3d ? camera3d.position : 'no camera');
     }
   }
   
@@ -3988,7 +4387,6 @@
   if (typeof THREE === 'undefined') {
     loadThreeJS();
   } else {
-    // Three.js is already loaded
     initializeApp();
   }
 </script>
